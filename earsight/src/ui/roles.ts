@@ -49,6 +49,20 @@ export function initRoles(h: RoleHooks) {
     const input = $<HTMLInputElement>('supCode');
     const connect = $<HTMLButtonElement>('supConnect');
     const status = $<HTMLElement>('supStatus');
+    const recent = $<HTMLElement>('supRecent');
+    const KEY = 'earsight.recentCodes';
+    const load = (): string[] => { try { const a = JSON.parse(localStorage.getItem(KEY) ?? '[]'); return Array.isArray(a) ? a.filter((c) => typeof c === 'string').slice(0, 5) : []; } catch { return []; } };
+    const remember = (code: string) => { try { localStorage.setItem(KEY, JSON.stringify([code, ...load().filter((c) => c !== code)].slice(0, 5))); } catch { /* storage may be blocked */ } };
+    const renderRecent = () => {
+      recent.replaceChildren();
+      for (const c of load()) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = c; b.className = 'recent'; b.title = 'Connect with this code again';
+        b.onclick = () => { input.value = c; doConnect(); };
+        recent.appendChild(b);
+      }
+      recent.hidden = recent.childElementCount === 0;
+    };
     const params = new URLSearchParams(location.search);
     if (params.get('code')) input.value = params.get('code')!;
     const doConnect = () => {
@@ -58,6 +72,7 @@ export function initRoles(h: RoleHooks) {
       link = new LinkSupplier(code);
       status.textContent = 'Connecting…';
       link.onChange = () => {
+        if (link!.status === 'connected') { remember(code); renderRecent(); }
         status.textContent = link!.status === 'connected' ? 'Connected to the viewer. Choose the view below, then press Start.'
           : link!.status === 'error' ? link!.detail
           : link!.status === 'closed' ? 'The viewer disconnected. Enter the code again.'
@@ -73,6 +88,7 @@ export function initRoles(h: RoleHooks) {
     };
     connect.onclick = doConnect;
     input.onkeydown = (e) => { if (e.key === 'Enter') doConnect(); };
+    renderRecent();
     input.focus();
   }
 

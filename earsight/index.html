@@ -8,7 +8,7 @@
 </head>
 <body class="role-select">
   <div id="roleScreen">
-    <h1>Earsight</h1>
+    <h1>Earsight <small class="ver"></small></h1>
     <p>Hear what is coming toward you. What do you want to do?</p>
     <button type="button" data-role="viewer" class="primary">Viewer only: this device plays the sound and shows the picture</button>
     <button type="button" data-role="supplier">Supplier only: this device provides the camera, another device plays</button>
@@ -19,6 +19,7 @@
     <label>Code shown on the viewer <input id="supCode" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. K7M2QX" /></label>
     <button type="button" id="supConnect" class="primary">Connect</button>
     <span id="supStatus" role="status"></span>
+    <div id="supRecent" hidden aria-label="Recent codes"></div>
   </div>
   <div id="viewerStage">
     <canvas id="viewerCanvas" aria-label="Vision display"></canvas>
@@ -34,7 +35,7 @@
     <button type="button" data-mode="light" aria-pressed="false" aria-label="Light perception view: shows depth as brightness, closer is brighter">Light perception</button>
   </div>
   <header>
-    <h1>Earsight</h1>
+    <h1>Earsight <small class="ver"></small></h1>
     <span class="sub">Hear what is coming toward you. Put on headphones, point the camera ahead and press Start.</span>
   </header>
 

@@ -541,6 +541,7 @@ if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
   }
   if (new URLSearchParams(location.search).get('depth') === '0') el.depthOn.checked = false; // test aid: open the page with ?depth=0
 }
+document.querySelectorAll('.ver').forEach((e) => { e.textContent = typeof __BUILD_LABEL__ === 'string' ? __BUILD_LABEL__ : ''; });
 populateSources();
 setAspect(640, 480);
 drawUnavailable('Press “Start camera” (or pick a synthetic scene)');

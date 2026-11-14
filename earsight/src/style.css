@@ -73,6 +73,10 @@ body.vision #visionStage { position: relative; inset: auto; height: 60vh; margin
 #roleScreen button { display: block; width: 100%; margin: 10px 0; font-size: 20px; padding: 18px; border-radius: 12px; text-align: left; }
 #supplierBar { display: none; padding: 10px 16px 0; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 #supplierBar input { font-size: 22px; letter-spacing: 3px; text-transform: uppercase; width: 11ch; background: #1a1f27; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+#supRecent { flex-basis: 100%; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#supRecent::before { content: 'Recent codes:'; font-size: 14px; color: var(--mut); }
+#supRecent[hidden] { display: none; }
+#supRecent button.recent { font-size: 18px; letter-spacing: 2px; padding: 6px 12px; border-radius: 8px; }
 #supStatus { font-size: 14px; color: var(--mut); }
 #supStatus.ok { color: #7fd69a; }
 #supStatus.err { color: #ff9a9a; }
@@ -96,3 +100,5 @@ body.role-supplier #modeBar button[data-mode="settings"] { display: none; }
 body.role-viewer > *:not(#viewerStage) { display: none !important; }
 body.role-viewer #viewerStage { display: block; }
 body.role-select #modeBar, body.role-viewer #modeBar { display: none; }
+
+small.ver { font-size: 12px; font-weight: 400; color: var(--mut); margin-left: 8px; letter-spacing: 0; }
