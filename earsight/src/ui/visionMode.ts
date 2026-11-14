@@ -30,7 +30,6 @@ export interface VisionApi {
   onMode?(m: ViewMode): void;
 }
 
-const KEY = 'earsight.mode';
 const HOLD_MS = 2000;
 const TAP_MS = 350;
 const BAR_MS = 4000;
@@ -124,7 +123,6 @@ export function initVisionModes(api: VisionApi) {
       api.onMode?.(m);
       return;
     }
-    try { localStorage.setItem(KEY, m); } catch { /* ignore */ }
     cancelAnimationFrame(raf);
     stageBar.hidden = true;
     if (m === 'settings') {
@@ -178,11 +176,10 @@ export function initVisionModes(api: VisionApi) {
   for (const t of ['pointercancel', 'pointerleave'] as const) stage.addEventListener(t, () => { clearTimeout(holdTimer); downAt = 0; });
   stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // start in the remembered / requested mode (?mode=peripheral or ?mode=light makes a bookmarkable shortcut)
+  // start in the requested mode (?mode=peripheral or ?mode=light makes a bookmarkable shortcut)
   function begin(initialMode: string | null) {
-    let initial = 'settings';
-    const q = new URLSearchParams(location.search).get('mode');
-    try { initial = initialMode ?? q ?? localStorage.getItem(KEY) ?? 'settings'; } catch { if (q) initial = q; }
+    // a reload always starts at the role selection and then in the settings view; only an explicit ?mode= opens a vision view
+    const initial = initialMode ?? new URLSearchParams(location.search).get('mode') ?? 'settings';
     if (initial === 'peripheral' || initial === 'light') setMode(initial, false);
     else setMode('settings', false);
   }

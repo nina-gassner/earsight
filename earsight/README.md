@@ -155,7 +155,7 @@ A mode bar at the top switches between three views:
 2. **Peripheral vision** (tunnel vision) – no controls visible. The camera picture is shown at full-screen scale but only through a round window in the centre of the display, the rest stays black (nothing is scaled down; only the centre of what the camera sees is used). The window size is set beforehand in Settings → Advanced settings → "Peripheral view: visible window".
 3. **Light perception** – no controls visible. The display shows the depth model output (middle panel: closer = brighter) full screen, so brightness itself carries depth. This turns Depth on automatically; it needs a device where the depth model runs (WebGPU), and the page announces by speech if it does not.
 
-Sound is switched on in both vision modes. **Leave a vision mode by holding the screen for two seconds (or Escape).** The page announces the mode and how to leave by speech. `?mode=peripheral` or `?mode=light` in the address (or the remembered last mode) opens straight into that view; one tap is then needed to start the camera. Not tested with real users or on a real phone yet.
+Sound is switched on in both vision modes. **Leave a vision mode by holding the screen for two seconds (or Escape).** The page announces the mode and how to leave by speech. `?mode=peripheral` or `?mode=light` in the address opens straight into that view (otherwise a reload always starts at the role selection); one tap is then needed to start the camera. Not tested with real users or on a real phone yet.
 
 ## Second device: audio data + vision data (QR)
 One device sees (camera + analysis, e.g. the phone); a second device only plays the sound and shows the picture and needs **no camera** (e.g. a device connected to glasses, or any browser).
