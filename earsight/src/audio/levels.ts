@@ -60,3 +60,17 @@ export function weightedCloseness(
   }
   return sw > 0 ? sc / sw : NaN;
 }
+
+/** Evidence-weighted vertical centre of the bright pixels, 0 = top .. 1 = bottom; NaN if nothing is bright. */
+export function verticalCentroid(values: ArrayLike<number>, w: number, h: number, threshold: number): number {
+  let sw = 0, sy = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const v = values[y * w + x];
+      if (!(v > threshold)) continue;
+      const wt = v - threshold;
+      sw += wt; sy += wt * (y + 0.5);
+    }
+  }
+  return sw > 0 ? sy / sw / h : NaN;
+}

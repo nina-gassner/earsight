@@ -58,3 +58,28 @@ describe('beep rate and closeness', () => {
     expect(lv).toEqual({ left: 0, right: 0 });
   });
 });
+
+import { earGains, gainFromCloseness, pitchFromHeight } from '../src/audio/sonifier';
+import { verticalCentroid } from '../src/audio/levels';
+
+describe('exaggerated stereo, distance loudness, height pitch', () => {
+  it('a slight lean to one side already plays mostly in that ear', () => {
+    const g = earGains(0.4, 0.6, 3); // balance 0.2 -> x3 = 0.6
+    expect(g.r).toBeGreaterThan(g.l * 2);
+    const h = earGains(0.3, 0.7, 3); // balance 0.4 -> fully one-sided
+    expect(h.l).toBe(0);
+    expect(earGains(0.5, 0.5, 3).l).toBeCloseTo(earGains(0.5, 0.5, 3).r, 6);
+    expect(earGains(0, 0, 3)).toEqual({ l: 0, r: 0 });
+  });
+  it('closer is louder, higher up is higher pitched', () => {
+    expect(gainFromCloseness(1)).toBeGreaterThan(gainFromCloseness(0.2));
+    expect(gainFromCloseness(0)).toBeGreaterThan(0);
+    expect(pitchFromHeight(0)).toBeGreaterThan(pitchFromHeight(1) * 4);
+  });
+  it('vertical centroid of bright pixels', () => {
+    const w = 4, h = 4, v = new Float32Array(w * h);
+    v[0] = 1; v[1] = 1; // top row
+    expect(verticalCentroid(v, w, h, 0.25)).toBeLessThan(0.2);
+    expect(verticalCentroid(new Float32Array(w * h), w, h, 0.25)).toBeNaN();
+  });
+});

@@ -38,7 +38,7 @@
       <label>Closeness threshold (2nd panel) <output id="oCloseThr">0.60</output>
         <input type="range" id="rCloseThr" min="0.3" max="0.95" step="0.05" value="0.6" />
       </label>
-      <label>Volume <input type="range" id="rVol" min="0" max="1" step="0.05" value="0.5" /></label>
+      <label>Volume <input type="range" id="rVol" min="0" max="1" step="0.05" value="1" /></label>
       <label>Depth backend
         <select id="selBackend">
           <option value="webgpu">WebGPU (fp16, recommended)</option>
@@ -92,6 +92,9 @@
         </label>
         <label>Ignore while turning faster than <output id="oTurn">45</output> °/s (0 = off)
           <input type="range" id="rTurn" min="0" max="200" step="5" value="45" />
+        </label>
+        <label>Left/right exaggeration <output id="oPan">3.0</output>× (1 = proportional, higher = even a slight tilt plays only in one ear)
+          <input type="range" id="rPan" min="1" max="8" step="0.5" value="3" />
         </label>
         <label>Assumed closing speed <output id="oSpeed">1.4</output> m/s
           <input type="range" id="rSpeed" min="0.5" max="10" step="0.1" value="1.4" />

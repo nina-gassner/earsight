@@ -9,7 +9,7 @@ import { SCENES, type SceneKind } from './synthetic/scenes';
 import { measureApproach } from './synthetic/metrics';
 import { Sonifier } from './audio/sonifier';
 import { suppressNonObjects, extractObjects, APPROACH_OBJECT_OPTS, CLOSENESS_OBJECT_OPTS } from './motion/objects';
-import { computeStereoLevels, weightedCloseness } from './audio/levels';
+import { computeStereoLevels, weightedCloseness, verticalCentroid } from './audio/levels';
 import { rateFromCloseness } from './audio/sonifier';
 import { PhoneSource } from './phoneSource';
 import { SoundGate } from './audio/gate';
@@ -29,7 +29,7 @@ const el = {
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
-  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
+  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
   cvLeft: $<HTMLCanvasElement>('cvLeft'), cvMid: $<HTMLCanvasElement>('cvMid'), cvRight: $<HTMLCanvasElement>('cvRight'), hatch: $<HTMLCanvasElement>('hatch'),
   dbgLeft: $<HTMLCanvasElement>('dbgLeft'), dbgRight: $<HTMLCanvasElement>('dbgRight'),
@@ -86,7 +86,9 @@ function sonify(kind: 'approach' | 'closeness', values: ArrayLike<number>, w: nu
   const closeness = gate.smoothValue('c', Number.isFinite(c) ? c : Math.max(lv.left, lv.right)); // no depth yet: use evidence strength
   // urgency = the larger of how close the object is and how strongly/widely it is approaching
   const urgency = approach ? Math.max(closeness, Math.max(lv.left, lv.right)) : closeness;
-  sonifier.update(lv.left, lv.right, rateFromCloseness(urgency), closeness);
+  const yc = verticalCentroid(values, w, h, opts.threshold);
+  const height = gate.smoothValue('y', Number.isFinite(yc) ? yc : 0.5);
+  sonifier.update(lv.left, lv.right, rateFromCloseness(urgency), closeness, height);
 }
 el.sound.addEventListener('change', async () => {
   if (el.sound.checked) { try { await sonifier.enable(); sonifier.setVolume(Number(el.vol.value)); } catch (e) { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); } }
@@ -95,6 +97,8 @@ el.sound.addEventListener('change', async () => {
 const closeOut = $('oCloseThr');
 el.closeThr.addEventListener('input', () => { closeOut.textContent = Number(el.closeThr.value).toFixed(2); });
 el.vol.addEventListener('input', () => sonifier.setVolume(Number(el.vol.value)));
+const setPan = () => { sonifier.panStrength = Number(el.pan.value); };
+bindRange(el.pan, 'oPan', (v) => v.toFixed(1), setPan);
 el.audioSrc.addEventListener('change', () => { sonifier.silence(); gates.approach.reset(); gates.closeness.reset(); });
 
 // ---------------------------------------------------------------- UI helpers
@@ -146,7 +150,7 @@ function drawUnavailable(text: string) {
 
 // ---------------------------------------------------------------- advanced settings: remembered in this browser
 const ADV_KEY = 'earsight.advanced.v1';
-const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rVol', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
 const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
 function loadAdvanced() {
   try {

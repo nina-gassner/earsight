@@ -1,14 +1,43 @@
 /**
  * Beep sonifier. Short beeps in the left/right ear (loudness per ear follows where the bright regions are).
- * Beep repetition rate rises as the object gets closer (and pitch rises slightly). Needs a user gesture to start.
+ * Beep repetition rate and loudness rise as the object gets closer; pitch follows the height of the object (up = high). Needs a user gesture to start.
  */
-export const MIN_RATE_HZ = 4;
-export const MAX_RATE_HZ = 30;
+export const MIN_RATE_HZ = 2;
+export const MAX_RATE_HZ = 36;
 
 /** urgency 0..1 (closeness or approach strength, whichever is larger) -> beeps per second; steep so approach sounds urgent */
 export function rateFromCloseness(c: number): number {
   const x = Math.min(1, Math.max(0, c));
-  return MIN_RATE_HZ + (MAX_RATE_HZ - MIN_RATE_HZ) * Math.sqrt(x);
+  return MIN_RATE_HZ + (MAX_RATE_HZ - MIN_RATE_HZ) * x ** 0.9; // nearly linear: a clear step in rate for every step in closeness
+}
+
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+
+/** how much louder than the old default the master output is (a limiter after the master gain prevents clipping) */
+export const MASTER_BOOST = 4;
+
+/** loudness 0.04..1 from closeness 0..1, squared: far things are barely audible, close things are at full level */
+export function gainFromCloseness(c: number): number {
+  const x = clamp01(Number.isFinite(c) ? c : 0);
+  return 0.04 + 0.96 * x * x;
+}
+
+/** pitch in Hz from the vertical position of the object (0 = top of the image, 1 = bottom): high up = high tone, 2.5 octaves */
+export function pitchFromHeight(y: number): number {
+  const up = 1 - clamp01(Number.isFinite(y) ? y : 0.5);
+  return 300 * 2 ** (2.5 * up);
+}
+
+/**
+ * Exaggerated left/right: the balance (right-left)/(right+left) is multiplied by `strength` and clipped, so an object that is
+ * only slightly to one side already plays (almost) only in that ear. Returns per-ear gains 0..1.
+ */
+export function earGains(left: number, right: number, strength: number): { l: number; r: number } {
+  const L = Math.max(left, right);
+  if (!(L > 0)) return { l: 0, r: 0 };
+  const b = Math.min(1, Math.max(-1, ((right - left) / (right + left)) * strength));
+  const s = 0.6 + 0.4 * clamp01(L); // overall strength of the evidence still matters a little
+  return { l: s * (b > 0 ? 1 - b : 1), r: s * (b < 0 ? 1 + b : 1) };
 }
 
 export class Sonifier {
@@ -23,7 +52,10 @@ export class Sonifier {
   private closeness = 0;
   private lastUpdate = 0;
   private wasSilent = true;
-  volume = 0.5;
+  private height = 0.5;
+  volume = 1;
+  /** left/right exaggeration factor (1 = proportional to the evidence) */
+  panStrength = 3;
 
   /** call from a click/change handler (autoplay policy) */
   async enable() {
@@ -31,8 +63,10 @@ export class Sonifier {
       const ctx = new AudioContext();
       const merger = ctx.createChannelMerger(2);
       const master = ctx.createGain();
-      master.gain.value = this.volume * 0.5;
-      merger.connect(master); master.connect(ctx.destination);
+      master.gain.value = this.volume * MASTER_BOOST;
+      const limiter = ctx.createDynamicsCompressor(); // loud but without clipping: fast, hard limiting near full scale
+      limiter.threshold.value = -2; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.05;
+      merger.connect(master); master.connect(limiter); limiter.connect(ctx.destination);
       this.ctx = ctx; this.merger = merger; this.master = master;
       this.timer = window.setInterval(() => this.tick(), 15);
     }
@@ -41,12 +75,12 @@ export class Sonifier {
 
   setVolume(v: number) {
     this.volume = v;
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(v * 0.5, this.ctx.currentTime, 0.05);
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(v * MASTER_BOOST, this.ctx.currentTime, 0.05);
   }
 
-  /** rate in Hz (0 = silent), left/right 0..1 loudness per ear, closeness 0..1 sets pitch */
-  update(left: number, right: number, rate: number, closeness: number) {
-    this.left = left; this.right = right; this.rate = rate; this.closeness = closeness;
+  /** rate in Hz (0 = silent), left/right 0..1 loudness per ear, closeness 0..1 sets loudness, height 0 (top)..1 (bottom) sets pitch */
+  update(left: number, right: number, rate: number, closeness: number, height = 0.5) {
+    this.left = left; this.right = right; this.rate = rate; this.closeness = closeness; this.height = height;
     this.lastUpdate = performance.now();
   }
 
@@ -68,13 +102,14 @@ export class Sonifier {
     const ctx = this.ctx!;
     const osc = ctx.createOscillator();
     osc.type = 'triangle';
-    osc.frequency.value = 600 + 500 * this.closeness;
+    osc.frequency.value = pitchFromHeight(this.height);
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(1, t + 0.004);
     env.gain.exponentialRampToValueAtTime(0.001, t + dur);
     const gl = ctx.createGain(), gr = ctx.createGain();
-    gl.gain.value = this.left; gr.gain.value = this.right;
+    const g = earGains(this.left, this.right, this.panStrength), d = gainFromCloseness(this.closeness);
+    gl.gain.value = g.l * d; gr.gain.value = g.r * d;
     osc.connect(env); env.connect(gl); env.connect(gr);
     gl.connect(this.merger!, 0, 0); gr.connect(this.merger!, 0, 1);
     osc.start(t); osc.stop(t + dur + 0.02);
