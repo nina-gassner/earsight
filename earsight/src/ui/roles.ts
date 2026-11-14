@@ -77,7 +77,7 @@ export function initRoles(h: RoleHooks) {
   }
 
   // ------------------------------------------------------------------ viewer
-  async function startViewer() {
+  function startViewer() {
     setRole('viewer');
     const canvas = $<HTMLCanvasElement>('viewerCanvas');
     const ctx = canvas.getContext('2d')!;
@@ -85,7 +85,8 @@ export function initRoles(h: RoleHooks) {
     const codeEl = $<HTMLElement>('viewerCode');
     const stateEl = $<HTMLElement>('viewerState');
     const son = new Sonifier();
-    try { await son.enable(); son.setVolume(1); } catch { stateEl.textContent = 'Sound could not start. Reload and tap again.'; }
+    // started from the button tap (a user gesture); never wait for it, the code must appear regardless
+    void son.enable().then(() => son.setVolume(1)).catch(() => { stateEl.textContent = 'Sound could not start. Reload and tap again.'; });
     const viewer = new LinkViewer();
     let cfg: LinkConfig = { mode: 'peripheral', mirror: false, pan: 2.5 };
     let picture: ImageBitmap | null = null;
