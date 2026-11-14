@@ -440,7 +440,7 @@ el.source.addEventListener('change', syncCamToggle);
 async function start() {
   const seq = ++startSeq;
   try { (navigator as any).wakeLock?.request('screen'); } catch { /* optional */ }
-  if (el.sound.checked) void sonifier.enable();
+  if (el.sound.checked) void sonifier.enable().then(() => sonifier.setVolume(Number(el.vol.value))).catch((e) => { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); });
   msg('');
   stopSource();
   lastMap = null; lastDepth = null; lastMotionT = lastDepthT = lastCamT = 0; synthStats = '';
