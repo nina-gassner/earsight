@@ -20,9 +20,9 @@ export interface LinkConfig {
 }
 
 export type LinkMessage =
-  | { t: 'a'; l: number; r: number; rate: number; c: number; h: number }
+  | { t: 'a'; n: number; l: number; r: number; rate: number; c: number; h: number }
   | ({ t: 'cfg' } & LinkConfig)
-  | { t: 'pic'; d: Uint8Array };
+  | { t: 'pic'; n: number; d: Uint8Array };
 
 export type LinkStatus = 'connecting' | 'waiting' | 'connected' | 'closed' | 'error';
 
@@ -44,7 +44,8 @@ export function normalizeCode(input: string): string | null {
 
 export const peerIdFor = (code: string) => 'earsight-' + code;
 
-const BACKPRESSURE = 300_000;
+/** never let data queue up: a late picture or beep is worthless, so when the link is behind we drop instead of buffering */
+const BACKPRESSURE = 40_000;
 
 /** The device that shows/plays: creates the code and waits for the supplier. */
 export class LinkViewer {
@@ -94,12 +95,14 @@ export class LinkSupplier {
   private conn: DataConnection | null = null;
   private timers: number[] = [];
   private encoding = false;
+  private seq = 0;
   private small = document.createElement('canvas');
 
   constructor(readonly code: string) {
     this.peer = new Peer();
     this.peer.on('open', () => {
-      const conn = this.peer.connect(peerIdFor(code), { reliable: true });
+      // unordered: a lost packet must not hold up everything behind it (that is what makes a live feed lag by seconds)
+      const conn = this.peer.connect(peerIdFor(code), { reliable: false });
       this.conn = conn;
       conn.on('open', () => this.set('connected'));
       conn.on('close', () => this.set('closed'));
@@ -115,15 +118,15 @@ export class LinkSupplier {
   private set(s: LinkStatus, detail = '') { this.status = s; this.detail = detail; this.onChange(); }
 
   private ready() {
-    const dc = (this.conn as unknown as { dataChannel?: RTCDataChannel } | null)?.dataChannel;
-    return this.conn?.open === true && (dc?.bufferedAmount ?? 0) < BACKPRESSURE;
+    const c = this.conn as unknown as { dataChannel?: RTCDataChannel; bufferSize?: number } | null;
+    return this.conn?.open === true && (c?.dataChannel?.bufferedAmount ?? 0) < BACKPRESSURE && (c?.bufferSize ?? 0) === 0;
   }
 
   private send(m: LinkMessage) { if (this.ready()) this.conn!.send(m); }
 
   sendAudio(l: number, r: number, rate: number, c: number, h: number) {
     const q = (x: number) => Math.round(x * 1000) / 1000;
-    this.send({ t: 'a', l: q(l), r: q(r), rate: q(rate), c: q(c), h: q(h) });
+    this.send({ t: 'a', n: ++this.seq, l: q(l), r: q(r), rate: q(rate), c: q(c), h: q(h) });
   }
 
   /** starts the periodic settings + picture updates (about 8 pictures per second) */
@@ -137,9 +140,9 @@ export class LinkSupplier {
       if (this.small.width !== w || this.small.height !== h) { this.small.width = w; this.small.height = h; }
       this.small.getContext('2d')!.drawImage(src, 0, 0, w, h);
       this.small.toBlob(async (blob) => {
-        try { if (blob) this.send({ t: 'pic', d: new Uint8Array(await blob.arrayBuffer()) }); } finally { this.encoding = false; }
-      }, 'image/jpeg', 0.6);
-    }, 120));
+        try { if (blob) this.send({ t: 'pic', n: ++this.seq, d: new Uint8Array(await blob.arrayBuffer()) }); } finally { this.encoding = false; }
+      }, 'image/jpeg', 0.5);
+    }, 125));
   }
 
   close() { this.timers.forEach(clearInterval); this.timers = []; this.peer.destroy(); }

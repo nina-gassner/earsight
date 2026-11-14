@@ -92,6 +92,7 @@ export function initRoles(h: RoleHooks) {
     let picture: ImageBitmap | null = null;
     let lastPicture = 0;
     let decoding = false;
+    let lastAudioSeq = 0, lastPicSeq = 0;
     let spoken = '';
 
     viewer.onChange = () => {
@@ -106,9 +107,10 @@ export function initRoles(h: RoleHooks) {
       else say('Connected.');
     };
     viewer.onMessage = async (m) => {
-      if (m.t === 'a') son.update(m.l, m.r, m.rate, m.c, m.h);
+      if (m.t === 'a') { if (m.n <= lastAudioSeq) return; lastAudioSeq = m.n; son.update(m.l, m.r, m.rate, m.c, m.h); }
       else if (m.t === 'cfg') { cfg = { mode: m.mode, mirror: m.mirror, pan: m.pan }; son.panStrength = m.pan; }
-      else if (m.t === 'pic' && !decoding) {
+      else if (m.t === 'pic' && !decoding && m.n > lastPicSeq) {
+        lastPicSeq = m.n;
         decoding = true;
         try {
           const bmp = await createImageBitmap(new Blob([m.d as BlobPart], { type: 'image/jpeg' }));
