@@ -1,0 +1,30 @@
+﻿{
+  "name": "earsight-circles",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Earsight â€” Approach Explorer: 3-way model: camera, depth, and approaching-circle detector",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "inspect-depth": "node scripts/inspect-depth.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2",
+    "@techstark/opencv-js": "4.12.0-release.1",
+    "qrcode": "^1.5.4",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}

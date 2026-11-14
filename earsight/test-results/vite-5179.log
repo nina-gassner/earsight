@@ -1,0 +1,37 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:16:45). Use `import.meta.dirname` instead
+  - import "./server/relayPlugin" without a file extension (vite.config.ts:4:29). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+[2m06:27:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+
+  [32m[1mVITE[22m v8.3.8[39m  [2mready in [0m[1m4363[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5179[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.0.33.208:[1m5179[22m/[39m   [2mWi-Fi[22m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.18.240.1:[1m5179[22m/[39m  [2mvEthernet (WSL (Hyp…[22m
+
+  Open the whole app on your phone (same Wi-Fi), scan:
+
+[47m[30m ▄▄▄▄▄▄▄  ▄▄▄   ▄▄ ▄▄▄▄▄▄▄ [0m
+[47m[30m █ ▄▄▄ █ ▀▄ ██▀█▀▄ █ ▄▄▄ █ [0m
+[47m[30m █ ███ █ ▄▀▄▀ ▄  ▄ █ ███ █ [0m
+[47m[30m █▄▄▄▄▄█ ▄▀▄▀▄▀▄▀▄ █▄▄▄▄▄█ [0m
+[47m[30m ▄ ▄ ▄ ▄  ▀▄  ▀▄▄▀   ▄  ▄  [0m
+[47m[30m ▄█▀▄▄▀▄▀▀▄ ▀ ▀▄ ▄▀▀▀█ ▄▄█ [0m
+[47m[30m  ▀▄▀█ ▄▀██   ▀▄ ▄▀▄▀▄▄ █▄ [0m
+[47m[30m ▄▀█  ▄▄  ▄ ▀ ▄ ▀▄▄▄▀ ▀▄▄█ [0m
+[47m[30m ▄▀▀█  ▄ ▀▀█▀▄  █▄▄▄█▄▀ ▀  [0m
+[47m[30m ▄▄▄▄▄▄▄ ▀ ███▀▄▀█ ▄ █▀▄██ [0m
+[47m[30m █ ▄▄▄ █ ▄▀▄▄▀▀█▄█▄▄▄█▀▀█▄ [0m
+[47m[30m █ ███ █ ▄▀ ▀ ▄▀█▀▀▄▄▀▄ ▀▄ [0m
+[47m[30m █▄▄▄▄▄█ ▄▀█▀▄  ▀▀▀█▄█ ▀█▄ [0m
+[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m[37m▀[47m[30m[0m
+[47m[30m[0m
+  http://10.0.33.208:5179/
+
+[2m06:27:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] scanning dependencies...
+[2m06:27:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...
+  [relay] laptop connected (room 882006…)
+  [relay] phone connected (room 882006…)
+  [relay] first frame from phone (6516 bytes), 1 laptop page(s) listening
+  [relay] phone disconnected

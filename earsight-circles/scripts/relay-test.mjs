@@ -1,0 +1,22 @@
+// Simulates a phone and a laptop against the running dev server relay: node scripts/relay-test.mjs
+import WebSocket from 'ws';
+const room = 'abcdef0123456789abcdef01';
+const base = 'wss://localhost:5173/relay?room=' + room;
+const opt = { rejectUnauthorized: false };
+const laptop = new WebSocket(base + '&role=laptop', opt);
+const got = [];
+laptop.on('message', (d, bin) => got.push(bin ? 'binary:' + d.length : String(d)));
+await new Promise((r) => laptop.on('open', r));
+const phone = new WebSocket(base + '&role=phone', opt);
+await new Promise((r) => phone.on('open', r));
+phone.send(Buffer.alloc(500, 1));
+const stranger = new WebSocket('wss://localhost:5173/relay?room=zzzzzzzzzzzzzzzzzzzzzzzz&role=laptop', opt);
+const strayGot = [];
+stranger.on('message', (d) => strayGot.push(String(d)));
+await new Promise((r) => stranger.on('open', r));
+phone.send(Buffer.alloc(300, 2));
+await new Promise((r) => setTimeout(r, 500));
+phone.close();
+await new Promise((r) => setTimeout(r, 300));
+console.log(JSON.stringify({ laptopGot: got, otherRoomGot: strayGot }));
+process.exit(0);

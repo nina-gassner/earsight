@@ -1,0 +1,13 @@
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:14:45). Use `import.meta.dirname` instead
+  - import "./server/relayPlugin" without a file extension (vite.config.ts:4:29). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v5.1.0 C:/Users/ninag/OneDrive/Dokumente/sonstige Ausbildung/Hackathons/Junction/earsight
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  05:57:09
+   Duration  140.52s (tests 100%)
+

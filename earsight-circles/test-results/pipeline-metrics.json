@@ -1,0 +1,105 @@
+{
+  "approach": {
+    "fgMean": 0.465,
+    "fgCov": 1,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0.126,
+    "maxAll": 0.151,
+    "avgMs": 195.2,
+    "fits": 1106,
+    "tracks": 357
+  },
+  "recession": {
+    "fgMean": 0,
+    "fgCov": 1,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0,
+    "maxAll": 0.001,
+    "avgMs": 224.5,
+    "fits": 1201,
+    "tracks": 388
+  },
+  "sideways": {
+    "fgMean": 0.008,
+    "fgCov": 1,
+    "bgBright": 0.001,
+    "bgMean": 0.005,
+    "allMean": 0.007,
+    "maxAll": 0.016,
+    "avgMs": 169.9,
+    "fits": 1366,
+    "tracks": 347
+  },
+  "static": {
+    "fgMean": 0,
+    "fgCov": 1,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0,
+    "maxAll": 0,
+    "avgMs": 150.5,
+    "fits": 1412,
+    "tracks": 333
+  },
+  "rotation": {
+    "fgMean": 0,
+    "fgCov": 1,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0,
+    "maxAll": 0.001,
+    "avgMs": 170.8,
+    "fits": 1443,
+    "tracks": 366
+  },
+  "waving": {
+    "fgMean": 0.066,
+    "fgCov": 1,
+    "bgBright": 0.001,
+    "bgMean": 0.001,
+    "allMean": 0.014,
+    "maxAll": 0.1,
+    "avgMs": 123.3,
+    "fits": 987,
+    "tracks": 298
+  },
+  "exposure": {
+    "fgMean": 0,
+    "fgCov": 1,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0,
+    "maxAll": 0,
+    "avgMs": 58.8,
+    "fits": 1285,
+    "tracks": 333
+  },
+  "plain": {
+    "fgMean": 0,
+    "fgCov": 0,
+    "bgBright": 0,
+    "bgMean": 0,
+    "allMean": 0,
+    "maxAll": 0,
+    "avgMs": 0.1,
+    "fits": 0,
+    "tracks": 0
+  },
+  "forward": {
+    "maxAll": 0
+  },
+  "forwardobj": {
+    "fgMean": 0.522,
+    "bgBright": 0
+  },
+  "punch@30": {
+    "peakFg": 1,
+    "maxBgBright": 0.002
+  },
+  "punch@15": {
+    "peakFg": 1,
+    "maxBgBright": 0.002
+  }
+}

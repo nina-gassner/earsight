@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Earsight — phone camera</title>
+  <style>
+    body { margin: 0; background: #101216; color: #e6e8ec; font: 16px system-ui, sans-serif; padding: 16px; }
+    button { font-size: 18px; padding: 12px 18px; border-radius: 8px; border: 0; background: #4c8dff; color: #fff; margin: 4px 4px 4px 0; }
+    button.sec { background: #2a2f38; }
+    video { width: 100%; max-height: 55vh; background: #000; margin-top: 12px; object-fit: contain; }
+    #status { margin-top: 10px; color: #9aa1ad; font-size: 14px; }
+    #err { margin-top: 10px; color: #ff8a8a; }
+  </style>
+</head>
+<body>
+  <h2>Earsight — phone camera</h2>
+  <p>Hold the phone in landscape. Frames are sent over your local Wi-Fi to the laptop page; nothing goes to the internet.</p>
+  <button id="go">Start sending</button>
+  <button id="flip" class="sec">Use front camera</button>
+  <button id="stop" class="sec" disabled>Stop</button>
+  <video id="v" playsinline muted></video>
+  <div id="status">idle</div>
+  <div id="err"></div>
+  <script type="module" src="/src/phone.ts"></script>
+</body>
+</html>

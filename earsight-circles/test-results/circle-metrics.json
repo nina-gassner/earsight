@@ -1,0 +1,193 @@
+{
+  "ballapproach": {
+    "firstApproach": 0.26666666666666666,
+    "flagged": 34,
+    "maxScore": 0.9362719655036926,
+    "bgBright": 0.000490814752489132,
+    "fgHit": 34,
+    "detFrames": 42,
+    "frames": 42,
+    "avgMs": 66.18720714285723
+  },
+  "ballsoft@30": {
+    "firstApproach": 0.26666666666666666,
+    "flagged": 52,
+    "maxScore": 0.6961630582809448,
+    "bgBright": 0.0025267249757045676,
+    "fgHit": 52,
+    "detFrames": 60,
+    "frames": 60,
+    "avgMs": 10.15482500000009
+  },
+  "ballsoft@10": {
+    "firstApproach": 0.3,
+    "flagged": 17,
+    "maxScore": 0.6785935163497925,
+    "bgBright": 0.0017020162346163916,
+    "fgHit": 17,
+    "detFrames": 20,
+    "frames": 20,
+    "avgMs": 10.095679999999902
+  },
+  "ballfast": {
+    "firstApproach": 0.26666666666666666,
+    "flagged": 22,
+    "maxScore": 0.999909520149231,
+    "bgBright": 0,
+    "fgHit": 22,
+    "detFrames": 30,
+    "frames": 30,
+    "avgMs": 52.22011999999989
+  },
+  "ballrecede": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 42,
+    "frames": 42,
+    "avgMs": 47.469711904761944
+  },
+  "ballside": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 60,
+    "frames": 60,
+    "avgMs": 48.904559999999705
+  },
+  "ballstatic": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 60,
+    "frames": 60,
+    "avgMs": 40.22337500000006
+  },
+  "ballwobble": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 90,
+    "frames": 90,
+    "avgMs": 45.04719333333333
+  },
+  "nc-approach": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 10,
+    "frames": 42,
+    "avgMs": 42.05282142857149
+  },
+  "nc-punch": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 41,
+    "frames": 60,
+    "avgMs": 48.18999999999984
+  },
+  "nc-forwardobj": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 0,
+    "frames": 39,
+    "avgMs": 12.017635897436262
+  },
+  "nc-forward": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 12,
+    "frames": 39,
+    "avgMs": 12.498076923076997
+  },
+  "nc-waving": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 30,
+    "frames": 90,
+    "avgMs": 59.171627777777516
+  },
+  "nc-rotation": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 0,
+    "frames": 60,
+    "avgMs": 69.7774833333339
+  },
+  "nc-recession": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 9,
+    "frames": 42,
+    "avgMs": 109.04602857142787
+  },
+  "nc-sideways": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 15,
+    "frames": 60,
+    "avgMs": 75.08414999999998
+  },
+  "nc-static": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 15,
+    "frames": 60,
+    "avgMs": 63.90419500000026
+  },
+  "nc-exposure": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 10,
+    "frames": 90,
+    "avgMs": 65.80347111111107
+  },
+  "nc-plain": {
+    "firstApproach": -1,
+    "flagged": 0,
+    "maxScore": 0,
+    "bgBright": 0,
+    "fgHit": 0,
+    "detFrames": 0,
+    "frames": 60,
+    "avgMs": 0.29392333333404774
+  },
+  "cost": 18.292483333333664
+}

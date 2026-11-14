@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Earsight — Approach Explorer</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Earsight — Approach Explorer</h1>
+    <span class="sub">Research prototype · frames are processed locally · no audio, labels or alarms</span>
+  </header>
+
+  <section id="controls">
+    <div class="row">
+      <button id="btnStart" class="primary">Start camera</button>
+      <button id="btnStop" disabled>Stop</button>
+      <button id="btnReset" disabled>Reset tracking</button>
+      <div class="seg" id="camToggle" role="group" aria-label="Camera to use">
+        <button id="btnCamLaptop" class="on" type="button">Laptop camera</button><button id="btnCamPhone" type="button">Phone camera (stream to laptop)</button>
+      </div>
+      <button id="btnRunOnPhone" type="button" title="Opens this whole app on the phone; the phone does all computing and sound">Run on phone (QR)</button>
+      <label>Source
+        <select id="selSource"></select>
+      </label>
+      <label class="chk"><input type="checkbox" id="chkMirror" checked /> Mirror</label>
+      <label class="chk"><input type="checkbox" id="chkDepth" checked /> Depth</label>
+      <label class="chk"><input type="checkbox" id="chkSound" /> Sound</label>
+      <label>Sound follows
+        <select id="selAudioSrc">
+          <option value="approach">3rd panel: approach</option>
+          <option value="closeness">2nd panel: closeness</option>
+        </select>
+      </label>
+      <label class="chk"><input type="checkbox" id="chkFlip" /> Flip left/right</label>
+      <label class="chk"><input type="checkbox" id="chkGateBeep" checked /> Beep only when approaching</label>
+      <label>Closeness threshold (2nd panel) <output id="oCloseThr">0.60</output>
+        <input type="range" id="rCloseThr" min="0.3" max="0.95" step="0.05" value="0.6" />
+      </label>
+      <label>Volume <input type="range" id="rVol" min="0" max="1" step="0.05" value="0.5" /></label>
+      <label>Depth backend
+        <select id="selBackend">
+          <option value="webgpu">WebGPU (fp16, recommended)</option>
+          <option value="wasm">WASM CPU (q8, much slower)</option>
+        </select>
+      </label>
+    </div>
+    <div id="qrPanel" hidden>
+      <canvas id="qrCanvas"></canvas>
+      <div>
+        <div id="qrTitle"><b>Scan with your phone</b> (same Wi-Fi as this laptop)</div>
+        <div id="qrText" class="hint"></div>
+        <label id="qrIpRow" hidden>Laptop IP address (run <code>ipconfig</code>, “IPv4 Address” of your Wi-Fi)
+          <input id="qrIp" placeholder="e.g. 192.168.1.23" inputmode="decimal" />
+        </label>
+        <div id="qrStatus"></div>
+        <div class="hint">The phone will warn about the certificate (self-signed, made by your own dev server): accept it. Hold the phone in landscape.</div>
+      </div>
+    </div>
+    <div id="message" role="status" hidden></div>
+    <div id="progress" hidden><div class="bar"><div id="progressFill"></div></div><span id="progressText"></span></div>
+    <details id="adv">
+      <summary>Settings &amp; debugging</summary>
+      <div class="grid">
+        <label>Capture resolution
+          <select id="selCap"><option value="320x240">320×240</option><option value="640x480" selected>640×480</option><option value="1280x720">1280×720</option></select>
+        </label>
+        <label>Motion analysis width
+          <select id="selProc"><option>160</option><option>240</option><option selected>320</option><option>480</option></select>
+        </label>
+        <label>Depth input size (multiple of 14)
+          <select id="selDepthSize"><option value="196">196</option><option value="266">266</option><option value="308" selected>308</option><option value="392">392</option><option value="518">518 (model default)</option></select>
+        </label>
+        <label>Tracking window <output id="oWin">200</output> ms
+          <input type="range" id="rWin" min="100" max="300" step="10" value="200" />
+        </label>
+        <label>Sensitivity <output id="oSens">1.6</output>×
+          <input type="range" id="rSens" min="0.5" max="3" step="0.1" value="1.6" />
+        </label>
+        <label>Approach smoothing <output id="oSm">200</output> ms
+          <input type="range" id="rSm" min="0" max="500" step="10" value="200" />
+        </label>
+        <label>Depth-bounds smoothing <output id="oDsm">1500</output> ms
+          <input type="range" id="rDsm" min="0" max="4000" step="100" value="1500" />
+        </label>
+        <label>Ignore far regions below closeness <output id="oNear">0.15</output>
+          <input type="range" id="rNear" min="0" max="0.6" step="0.05" value="0.15" />
+        </label>
+        <label class="chk"><input type="checkbox" id="chkObjects" checked /> Only separable objects (reject gradients / huge / soft regions)</label>
+        <label class="chk"><input type="checkbox" id="chkPath" checked /> Only things on a collision path (ignore what I merely pass)</label>
+        <label class="chk"><input type="checkbox" id="chkDerot" checked /> Compensate camera rotation (pan / tilt / roll)</label>
+        <label class="chk"><input type="checkbox" id="chkEgo" checked /> Ignore scene-wide expansion (camera movement, floor)</label>
+        <label class="chk"><input type="checkbox" id="chkGate" checked /> Depth limits propagation</label>
+        <label class="chk"><input type="checkbox" id="chkUnknown" checked /> Hatch unknown regions</label>
+        <label class="chk"><input type="checkbox" id="chkPoints" /> Tracked points</label>
+        <label class="chk"><input type="checkbox" id="chkFits" /> Local fits (rate / confidence)</label>
+      </div>
+      <div id="effects" class="hint"></div>
+    </details>
+  </section>
+
+  <main id="panels">
+    <figure class="panel" id="pLeft">
+      <figcaption><b>Camera</b> <span class="ts" id="tsLeft">—</span></figcaption>
+      <div class="stack"><canvas id="cvLeft" class="mirrorable"></canvas><canvas id="dbgLeft" class="overlay"></canvas></div>
+    </figure>
+    <figure class="panel" id="pMid">
+      <figcaption><b>Relative closeness — not metres</b> <span class="ts" id="tsMid">—</span></figcaption>
+      <div class="stack"><canvas id="cvMid" class="mirrorable"></canvas></div>
+      <div class="legend"><span><i class="sw" style="background:#fff"></i>closer</span><span><i class="sw" style="background:#000;border:1px solid #666"></i>farther</span></div>
+    </figure>
+    <figure class="panel" id="pRight">
+      <figcaption><b>Approach evidence</b> <span class="ts" id="tsRight">—</span></figcaption>
+      <div class="stack"><canvas id="cvRight" class="mirrorable"></canvas><canvas id="hatch" class="mirrorable overlay"></canvas><canvas id="dbgRight" class="overlay"></canvas></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#000;border:1px solid #666"></i>dark, valid support: no positive approach evidence</span>
+        <span><i class="sw" style="background:#fff"></i>bright: positive approach evidence</span>
+        <span><i class="sw hatchsw"></i>hatched: unknown / insufficient evidence</span>
+      </div>
+    </figure>
+  </main>
+
+  <section id="stats">
+    <div id="statsLine"></div>
+    <div id="synthLine"></div>
+  </section>
+
+  <footer>
+    “Approaching” means the distance between a surface and the camera is decreasing. The right panel is a local optical-expansion proxy under
+    geometric assumptions — not a measurement of 3-D motion (see README for limits). Depth model: onnx-community/depth-anything-v2-small.
+  </footer>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
