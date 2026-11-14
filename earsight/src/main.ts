@@ -9,6 +9,7 @@ import { SCENES, type SceneKind } from './synthetic/scenes';
 import { measureApproach } from './synthetic/metrics';
 import { Sonifier } from './audio/sonifier';
 import { initVisionModes } from './ui/visionMode';
+import { ShareSender } from './share';
 import { suppressNonObjects, extractObjects, APPROACH_OBJECT_OPTS, CLOSENESS_OBJECT_OPTS } from './motion/objects';
 import { computeStereoLevels, weightedCloseness, verticalCentroid } from './audio/levels';
 import { rateFromCloseness } from './audio/sonifier';
@@ -28,7 +29,7 @@ const el = {
   gate: $<HTMLInputElement>('chkGate'), near: $<HTMLInputElement>('rNear'), unknown: $<HTMLInputElement>('chkUnknown'), points: $<HTMLInputElement>('chkPoints'), fits: $<HTMLInputElement>('chkFits'),
   sound: $<HTMLInputElement>('chkSound'), audioSrc: $<HTMLSelectElement>('selAudioSrc'), flip: $<HTMLInputElement>('chkFlip'),
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
-  btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
+  btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), btnShare: $<HTMLButtonElement>('btnShare'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
   pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), field: $<HTMLInputElement>('rField'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
@@ -367,7 +368,7 @@ function roomToken(): string {
   cachedRoom = t;
   return t;
 }
-type QrMode = 'stream' | 'app';
+type QrMode = 'stream' | 'app' | 'share';
 let qrMode: QrMode = 'stream';
 let manualHost = '';
 
@@ -386,7 +387,9 @@ async function renderQr() {
   const onLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const host = manualHost || (onLocal ? ips[0] : location.hostname);
   el.qrPanel.hidden = false;
-  el.qrTitle.innerHTML = qrMode === 'app'
+  el.qrTitle.innerHTML = qrMode === 'share'
+    ? '<b>Scan with the other device</b> — it plays the sound and shows the picture of the current view; it needs no camera (same Wi-Fi)'
+    : qrMode === 'app'
     ? '<b>Open the whole app on your phone</b> — the phone does all computing, camera and sound; this laptop only serves the page'
     : '<b>Scan with your phone</b> — the phone streams its camera to this laptop (same Wi-Fi)';
   ipRow.hidden = !!host && !!ips.length ? true : false;
@@ -399,9 +402,11 @@ async function renderQr() {
     return;
   }
   const origin = `https://${host}:${location.port || 5173}`;
-  const url = qrMode === 'app' ? origin + '/' : `${origin}/phone.html?room=${roomToken()}`;
+  const url = qrMode === 'app' ? origin + '/' : qrMode === 'share' ? `${origin}/view.html?room=${roomToken()}` : `${origin}/phone.html?room=${roomToken()}`;
   el.qrText.textContent = url + (ips.length > 1 && !manualHost ? `  (other addresses: ${ips.filter((x) => x !== host).join(', ')})` : '');
-  el.qrStatus.textContent = qrMode === 'app'
+  el.qrStatus.textContent = qrMode === 'share'
+    ? shareStatusText()
+    : qrMode === 'app'
     ? 'On the phone: accept the certificate warning, tap Start camera, allow the camera, tick Sound. First start downloads the depth model onto the phone.'
     : phone ? '' : 'Scan, accept the certificate warning, press “Start sending”. Then press Start camera here.';
   try { await QRCode.toCanvas(el.qrCanvas, url, { width: 200, margin: 2 }); }
@@ -410,6 +415,25 @@ async function renderQr() {
 $<HTMLInputElement>('qrIp').addEventListener('input', (e) => {
   const v = (e.target as HTMLInputElement).value.trim();
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v)) { manualHost = v; void renderQr(); }
+});
+// ---- share: send the audio data and the vision data to a second device
+let share: ShareSender | null = null;
+let vision: { getMode(): 'settings' | 'peripheral' | 'light' } | null = null;
+function shareStatusText() {
+  if (!share) return '';
+  return share.status === 'closed' ? 'Connection to the server lost. Press the button again.' : share.viewers > 0 ? `Other device connected (${share.viewers}). It receives the sound and the picture of the current view.` : 'Waiting for the other device… scan the code, accept the certificate warning, tap the screen.';
+}
+sonifier.onUpdate = (l, r, rate, c, h) => share?.sendAudio(l, r, rate, c, h);
+el.btnShare.addEventListener('click', () => {
+  share?.close();
+  share = new ShareSender(
+    roomToken(),
+    () => ({ mode: vision?.getMode() ?? 'settings', field: Number(el.field.value), mirror: el.mirror.checked, pan: sonifier.panStrength }),
+    () => (vision?.getMode() === 'light' ? el.cvMid : el.cvLeft),
+  );
+  share.onChange = () => { if (qrMode === 'share') el.qrStatus.textContent = shareStatusText(); };
+  qrMode = 'share';
+  renderQr().catch((e) => msg('QR error: ' + (e as Error).message, 'err'));
 });
 el.btnRunOnPhone.addEventListener('click', () => { qrMode = 'app'; renderQr().catch((e) => msg('QR error: ' + (e as Error).message, 'err')); });
 
@@ -558,7 +582,7 @@ motion = new MotionClient({ onReady: () => pushMotionSettings(), onError: (m) =>
 };
 
 // ---------------------------------------------------------------- view modes (settings / peripheral / light perception)
-initVisionModes({
+vision = initVisionModes({
   camCanvas: () => el.cvLeft,
   depthCanvas: () => el.cvMid,
   depthReady: () => depthState === 'ready' && lastDepth !== null,

@@ -156,3 +156,10 @@ A mode bar at the top switches between three views:
 3. **Light perception** – no controls visible. The display shows the depth model output (middle panel: closer = brighter) full screen, so brightness itself carries depth. This turns Depth on automatically; it needs a device where the depth model runs (WebGPU), and the page announces by speech if it does not.
 
 Sound is switched on in both vision modes. **Leave a vision mode by holding the screen for two seconds (or Escape).** The page announces the mode and how to leave by speech. `?mode=peripheral` or `?mode=light` in the address (or the remembered last mode) opens straight into that view; one tap is then needed to start the camera. Not tested with real users or on a real phone yet.
+
+## Second device: audio data + vision data (QR)
+One device sees (camera + analysis, e.g. the phone); a second device only plays the sound and shows the picture and needs **no camera** (e.g. a device connected to glasses, or any browser).
+1. On the seeing device: More options → **Send sound + view to another device (QR)**. The QR code opens `view.html?room=…` on the second device.
+2. On the second device: scan, accept the certificate warning, tap the screen once (browsers only start sound after a tap).
+3. The second device then plays exactly the beeps (left/right level, loudness, rate, pitch) and shows the picture of the **current view** of the seeing device: camera for Settings / Peripheral (tunnel-vision window), depth brightness for Light perception. Pictures are small JPEGs (about 8 per second); the sound is sent as small numbers (`share.ts` documents the messages), not as audio, so it plays without delay beyond the Wi-Fi.
+Scan the code **before** switching the seeing device into a vision mode (the vision modes hide all controls). Needs the laptop server (`npm run phone`) on the same Wi-Fi: the relay is part of that server, so it does **not** work on the public GitHub Pages site. Tested: relay logic (`tests/relayShare.test.ts`); not tested on real devices.

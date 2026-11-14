@@ -13,7 +13,7 @@ export default defineConfig({
   optimizeDeps: { exclude: ['@huggingface/transformers'], include: ['@techstark/opencv-js', 'qrcode'] },
   build: {
     target: 'es2022',
-    rollupOptions: { input: { main: resolve(__dirname, 'index.html'), phone: resolve(__dirname, 'phone.html') } },
+    rollupOptions: { input: { main: resolve(__dirname, 'index.html'), phone: resolve(__dirname, 'phone.html'), view: resolve(__dirname, 'view.html') } },
   },
   test: { include: ['tests/**/*.test.ts'], testTimeout: 120000, hookTimeout: 120000 },
 });
