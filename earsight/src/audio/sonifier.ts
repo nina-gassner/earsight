@@ -29,15 +29,20 @@ export function pitchFromHeight(y: number): number {
 }
 
 /**
- * Exaggerated left/right: the balance (right-left)/(right+left) is multiplied by `strength` and clipped, so an object that is
- * only slightly to one side already plays (almost) only in that ear. Returns per-ear gains 0..1.
+ * Exaggerated left/right with a smooth transition. The balance |right-left|/(right+left) is scaled by `strength` (full one-sided
+ * play once the balance reaches 1/strength), then shaped by a smoothstep S-curve: nearly centred sounds stay nearly centred
+ * (someone ahead and only slightly to the left is NOT heard fully on the left), the middle range moves quickly, and the
+ * sides saturate gently without a hard corner. The far ear fades along a quarter-circle (-3 dB at half way) instead of a
+ * straight line. Returns per-ear gains 0..1.
  */
 export function earGains(left: number, right: number, strength: number): { l: number; r: number } {
   const L = Math.max(left, right);
   if (!(L > 0)) return { l: 0, r: 0 };
-  const b = Math.min(1, Math.max(-1, ((right - left) / (right + left)) * strength));
+  const u = clamp01((Math.abs(right - left) / (right + left)) * strength);
+  const pan = u * u * (3 - 2 * u); // smoothstep: slope 0 at both ends
+  const far = Math.cos(pan * Math.PI / 2);
   const s = 0.6 + 0.4 * clamp01(L); // overall strength of the evidence still matters a little
-  return { l: s * (b > 0 ? 1 - b : 1), r: s * (b < 0 ? 1 + b : 1) };
+  return right > left ? { l: s * far, r: s } : { l: s, r: s * far };
 }
 
 export class Sonifier {
@@ -54,8 +59,8 @@ export class Sonifier {
   private wasSilent = true;
   private height = 0.5;
   volume = 1;
-  /** left/right exaggeration factor (1 = proportional to the evidence) */
-  panStrength = 3;
+  /** left/right exaggeration: fully one-sided once the left/right balance reaches 1/panStrength (1 = only at the extreme) */
+  panStrength = 2.5;
 
   /** call from a click/change handler (autoplay policy) */
   async enable() {

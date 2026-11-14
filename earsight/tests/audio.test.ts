@@ -63,13 +63,30 @@ import { earGains, gainFromCloseness, pitchFromHeight } from '../src/audio/sonif
 import { verticalCentroid } from '../src/audio/levels';
 
 describe('exaggerated stereo, distance loudness, height pitch', () => {
-  it('a slight lean to one side already plays mostly in that ear', () => {
-    const g = earGains(0.4, 0.6, 3); // balance 0.2 -> x3 = 0.6
-    expect(g.r).toBeGreaterThan(g.l * 2);
-    const h = earGains(0.3, 0.7, 3); // balance 0.4 -> fully one-sided
-    expect(h.l).toBe(0);
-    expect(earGains(0.5, 0.5, 3).l).toBeCloseTo(earGains(0.5, 0.5, 3).r, 6);
-    expect(earGains(0, 0, 3)).toEqual({ l: 0, r: 0 });
+  it('pans smoothly: nearly centred stays nearly centred, a clear lean is exaggerated, the sides saturate', () => {
+    const near = earGains(0.47, 0.53, 2.5); // balance 0.06: almost straight ahead -> both ears still clearly audible
+    expect(near.l / near.r).toBeGreaterThan(0.85);
+    const mid = earGains(0.4, 0.6, 2.5); // balance 0.2 -> clearly to the right, but the left ear is not gone
+    expect(mid.r).toBeGreaterThan(mid.l * 1.2);
+    expect(mid.l).toBeGreaterThan(0.2);
+    const h = earGains(0.3, 0.7, 2.5); // balance 0.4 -> fully one-sided
+    expect(h.l).toBeCloseTo(0, 6);
+    expect(earGains(0.5, 0.5, 2.5).l).toBeCloseTo(earGains(0.5, 0.5, 2.5).r, 6);
+    expect(earGains(0, 0, 2.5)).toEqual({ l: 0, r: 0 });
+  });
+  it('the pan position never jumps: the left/right ratio falls monotonically and in small steps', () => {
+    const ratio = (r: number) => { const g = earGains(1 - r, r, 2.5); return g.l / g.r; };
+    let prev = ratio(0.5), maxStep = 0;
+    for (let i = 1; i <= 100; i++) {
+      const q = ratio(0.5 + 0.005 * i); // balance 0 .. 1 in steps of 0.01
+      expect(q).toBeLessThanOrEqual(prev + 1e-9);
+      maxStep = Math.max(maxStep, prev - q);
+      prev = q;
+    }
+    expect(maxStep).toBeLessThan(0.08); // per 0.01 of balance
+    // mirror symmetry
+    const a = earGains(0.35, 0.65, 2.5), b = earGains(0.65, 0.35, 2.5);
+    expect(a.l).toBeCloseTo(b.r, 9); expect(a.r).toBeCloseTo(b.l, 9);
   });
   it('closer is louder, higher up is higher pitched', () => {
     expect(gainFromCloseness(1)).toBeGreaterThan(gainFromCloseness(0.2));
