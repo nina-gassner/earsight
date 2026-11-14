@@ -17,6 +17,8 @@ export interface LinkConfig {
   mode: ViewKind;
   mirror: boolean;
   pan: number;
+  /** 0..1 volume chosen on the supplier */
+  vol?: number;
 }
 
 export type LinkMessage =
@@ -42,13 +44,21 @@ export function normalizeCode(input: string): string | null {
   return c.length === CODE_LENGTH && [...c].every((ch) => CODE_ALPHABET.includes(ch)) ? c : null;
 }
 
-/** STUN finds the direct route; TURN (public relay) is the fallback when the two devices are behind different NATs / mobile data */
+/**
+ * STUN finds the direct route. TURN (a relay) is the fallback when the two devices cannot reach each other directly
+ * (different networks, mobile data, strict NATs, glasses). Public relays are unreliable, so your own can be set at build
+ * time: VITE_TURN_URLS (comma separated, e.g. "turn:a.example.com:3478,turns:a.example.com:443?transport=tcp"),
+ * VITE_TURN_USERNAME and VITE_TURN_CREDENTIAL (in GitHub: repository secrets/variables, passed by the Pages workflow).
+ */
+const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+const ownTurn = (env.VITE_TURN_URLS ?? '').split(',').map((u) => u.trim()).filter(Boolean);
+export const HAS_OWN_TURN = ownTurn.length > 0;
 const PEER_OPTIONS = {
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' },
-      { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      ...(HAS_OWN_TURN ? [{ urls: ownTurn, username: env.VITE_TURN_USERNAME ?? '', credential: env.VITE_TURN_CREDENTIAL ?? '' }] : []),
     ],
   },
 };
@@ -58,6 +68,42 @@ export const peerIdFor = (code: string) => 'earsight-' + code;
 /** never let data queue up: a late picture or beep is worthless, so when the link is behind we drop instead of buffering */
 const BACKPRESSURE = 40_000;
 
+/**
+ * Diagnostics: which kinds of ICE candidates a device found (host = local address, mdns = hidden local address that the
+ * other side may not be able to resolve, srflx = public address via STUN, relay = via a TURN server), and after connecting
+ * which route is really used (direct or relay). Shown next to the status so a failing device can be understood.
+ */
+export class IceWatch {
+  private seen = { host: 0, mdns: 0, srflx: 0, relay: 0 };
+  route = '';
+  constructor(private pc: RTCPeerConnection | undefined, private onInfo: () => void) {
+    pc?.addEventListener('icecandidate', (e) => {
+      const c = e.candidate?.candidate ?? '';
+      const t = /typ (\w+)/.exec(c)?.[1];
+      if (t === 'host') { if (/\.local/.test(c)) this.seen.mdns++; else this.seen.host++; }
+      else if (t === 'srflx') this.seen.srflx++;
+      else if (t === 'relay') this.seen.relay++;
+      this.onInfo();
+    });
+  }
+  summary(): string {
+    const s = this.seen;
+    return `ICE found: local ${s.host}, hidden-local ${s.mdns}, public ${s.srflx}, relay ${s.relay}` + (this.route ? `; route: ${this.route}` : '');
+  }
+  async resolveRoute() {
+    try {
+      const stats = await this.pc!.getStats();
+      let pair: any = null;
+      stats.forEach((r: any) => { if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') pair = r; });
+      if (!pair) return;
+      const local: any = stats.get(pair.localCandidateId), remote: any = stats.get(pair.remoteCandidateId);
+      const lt = local?.candidateType, rt = remote?.candidateType;
+      this.route = lt === 'relay' || rt === 'relay' ? 'RELAY (slow, via a server)' : `direct (${lt}/${rt})`;
+      this.onInfo();
+    } catch { /* stats not available */ }
+  }
+}
+
 /** The device that shows/plays: creates the code and waits for the supplier. */
 export class LinkViewer {
   code = generateCode();
@@ -65,6 +111,7 @@ export class LinkViewer {
   detail = '';
   onChange: () => void = () => {};
   onMessage: (m: LinkMessage) => void = () => {};
+  ice = '';
   private peer: Peer | null = null;
   private tries = 0;
 
@@ -81,10 +128,11 @@ export class LinkViewer {
     this.peer = peer;
     peer.on('open', () => this.set('waiting'));
     peer.on('connection', (conn) => {
-      conn.on('open', () => this.set('connected'));
+      const ice = new IceWatch((conn as unknown as { peerConnection?: RTCPeerConnection }).peerConnection, () => { this.ice = ice.summary(); this.onChange(); });
+      conn.on('open', () => { this.set('connected'); void ice.resolveRoute(); });
       conn.on('data', (d) => this.onMessage(d as LinkMessage));
       conn.on('close', () => this.set('waiting'));
-      conn.on('error', () => this.set('waiting'));
+      conn.on('error', (e: { message?: string }) => this.set('waiting', 'A device found this code but the connection failed (' + (e?.message ?? 'unknown') + ').'));
     });
     peer.on('disconnected', () => { try { peer.reconnect(); } catch { /* destroyed */ } });
     peer.on('error', (err: { type?: string; message?: string }) => {
@@ -109,21 +157,35 @@ export class LinkSupplier {
   private seq = 0;
   private small = document.createElement('canvas');
 
+  ice = '';
+  private retried = false;
+
   constructor(readonly code: string) {
     this.peer = new Peer(PEER_OPTIONS);
-    this.peer.on('open', () => {
-      // unordered: a lost packet must not hold up everything behind it (that is what makes a live feed lag by seconds)
-      const conn = this.peer.connect(peerIdFor(code), { reliable: false });
-      this.conn = conn;
-      conn.on('open', () => this.set('connected'));
-      conn.on('close', () => this.set('closed'));
-      conn.on('error', (e) => this.set('error', String(e)));
-    });
-    this.peer.on('error', (err: { type?: string; message?: string }) => {
+    this.peer.on('open', () => this.connect(false));
+    this.peer.on('error', (err: { type?: string; message?: string }) => this.onFail(err));
+  }
+
+  private onFail(err: { type?: string; message?: string }) {
+    {
+      // the first attempt is unordered (a lost packet must not hold up everything behind it: that is what makes a live
+      // feed lag by seconds). If the handshake fails, try once more with a reliable channel before giving up.
+      if (!this.retried && /negotiation/i.test(err.message ?? '')) { this.retried = true; this.set('connecting'); this.connect(true); return; }
       this.set('error', err.type === 'peer-unavailable' ? 'No viewer with this code. Check the code on the viewer.'
         : err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' ? 'Could not reach the introduction server (needs internet).'
+        : /negotiation/i.test(err.message ?? '') ? 'The two devices could not connect directly. They are probably on different networks and no relay (TURN server) was reachable.'
         : (err.message ?? String(err.type)));
-    });
+    }
+  }
+
+  private connect(reliable: boolean) {
+    if (this.conn) { this.conn.removeAllListeners(); this.conn.close(); }
+    const conn = this.peer.connect(peerIdFor(this.code), { reliable });
+    this.conn = conn;
+    const ice = new IceWatch((conn as unknown as { peerConnection?: RTCPeerConnection }).peerConnection, () => { this.ice = ice.summary(); this.onChange(); });
+    conn.on('open', () => { this.set('connected'); void ice.resolveRoute(); });
+    conn.on('close', () => this.set('closed'));
+    conn.on('error', (e) => this.onFail(e as { type?: string; message?: string }));
   }
 
   private set(s: LinkStatus, detail = '') { this.status = s; this.detail = detail; this.onChange(); }

@@ -31,7 +31,7 @@ const el = {
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
-  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
+  vol: $<HTMLInputElement>('rVol'), laptopMode: $<HTMLInputElement>('chkLaptopMode'), pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
   cvLeft: $<HTMLCanvasElement>('cvLeft'), cvMid: $<HTMLCanvasElement>('cvMid'), cvRight: $<HTMLCanvasElement>('cvRight'), hatch: $<HTMLCanvasElement>('hatch'),
   dbgLeft: $<HTMLCanvasElement>('dbgLeft'), dbgRight: $<HTMLCanvasElement>('dbgRight'),
@@ -67,6 +67,10 @@ let synthStats = '';
 
 // ---------------------------------------------------------------- sound
 const sonifier = new Sonifier();
+/** laptop mode: the beep rate reacts as if things were this many times 'more urgent' (so the beeps race at a greater distance) */
+const LAPTOP_URGENCY_BOOST = 2.2;
+const LAPTOP_SENSITIVITY = 3.0;
+const volume = () => Number(el.vol.value) / 100;
 let evidenceBuf = new Float32Array(0);
 const gates = { approach: new SoundGate(), closeness: new SoundGate() };
 let approachActiveT = 0; // last time separable approach evidence was present (gates the beeps)
@@ -90,10 +94,10 @@ function sonify(kind: 'approach' | 'closeness', values: ArrayLike<number>, w: nu
   const urgency = approach ? Math.max(closeness, Math.max(lv.left, lv.right)) : closeness;
   const yc = verticalCentroid(values, w, h, opts.threshold);
   const height = gate.smoothValue('y', Number.isFinite(yc) ? yc : 0.5);
-  sonifier.update(lv.left, lv.right, rateFromCloseness(urgency), closeness, height);
+  sonifier.update(lv.left, lv.right, rateFromCloseness(el.laptopMode.checked ? Math.min(1, urgency * LAPTOP_URGENCY_BOOST) : urgency), closeness, height);
 }
 el.sound.addEventListener('change', async () => {
-  if (el.sound.checked) { try { await sonifier.enable(); sonifier.setVolume(1); } catch (e) { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); } }
+  if (el.sound.checked) { try { await sonifier.enable(); sonifier.setVolume(volume()); } catch (e) { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); } }
   else await sonifier.disable();
 });
 const closeOut = $('oCloseThr');
@@ -151,7 +155,7 @@ function drawUnavailable(text: string) {
 
 // ---------------------------------------------------------------- advanced settings: remembered in this browser
 const ADV_KEY = 'earsight.advanced.v1';
-const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const ADV_IDS = ['rWin', 'rVol', 'chkLaptopMode', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
 const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
 function loadAdvanced() {
   try {
@@ -178,7 +182,7 @@ el.resetAdv.addEventListener('click', () => { try { localStorage.removeItem(ADV_
 function motionSettings(): MotionSettings {
   return {
     ...DEFAULT_MOTION_SETTINGS,
-    procWidth: Number(el.proc.value), windowMs: Number(el.win.value), sensitivity: Number(el.sens.value),
+    procWidth: Number(el.proc.value), windowMs: Number(el.win.value), sensitivity: el.laptopMode.checked ? LAPTOP_SENSITIVITY : Number(el.sens.value),
     smoothingMs: Number(el.sm.value), useDepthGate: el.gate.checked, nearThreshold: Number(el.near.value), egoComp: el.ego.checked, derotate: el.derot.checked, pathGate: el.path.checked,
     pathHalfWidth: Number(el.pathW.value), maxTurnDegPerSec: Number(el.turn.value), walkSpeed: Number(el.speed.value), hfovDeg: Number(el.hfov.value),
   };
@@ -192,6 +196,15 @@ function bindRange(input: HTMLInputElement, out: string, fmt: (v: number) => str
 }
 bindRange(el.win, 'oWin', (v) => String(v), pushMotionSettings);
 bindRange(el.sens, 'oSens', (v) => v.toFixed(1), pushMotionSettings);
+bindRange(el.vol, 'oVol', (v) => String(v), () => { sonifier.setVolume(volume()); });
+const applyLaptopMode = () => {
+  const on = el.laptopMode.checked;
+  el.sens.disabled = on; // the slider is locked while laptop mode fixes the sensitivity at 3.0
+  $('oSens').textContent = on ? LAPTOP_SENSITIVITY.toFixed(1) : Number(el.sens.value).toFixed(1);
+  pushMotionSettings();
+};
+el.laptopMode.addEventListener('change', applyLaptopMode);
+applyLaptopMode();
 bindRange(el.pathW, 'oPathW', (v) => v.toFixed(1), pushMotionSettings);
 bindRange(el.turn, 'oTurn', (v) => String(v), pushMotionSettings);
 bindRange(el.speed, 'oSpeed', (v) => v.toFixed(1), pushMotionSettings);
@@ -443,7 +456,7 @@ el.source.addEventListener('change', syncCamToggle);
 async function start() {
   const seq = ++startSeq;
   try { (navigator as any).wakeLock?.request('screen'); } catch { /* optional */ }
-  if (el.sound.checked) void sonifier.enable().then(() => sonifier.setVolume(1)).catch((e) => { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); });
+  if (el.sound.checked) void sonifier.enable().then(() => sonifier.setVolume(volume())).catch((e) => { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); });
   msg('');
   stopSource();
   lastMap = null; lastDepth = null; lastMotionT = lastDepthT = lastCamT = 0; synthStats = '';

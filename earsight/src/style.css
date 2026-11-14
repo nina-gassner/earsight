@@ -102,3 +102,8 @@ body.role-viewer #viewerStage { display: block; }
 body.role-select #modeBar, body.role-viewer #modeBar { display: none; }
 
 small.ver { font-size: 12px; font-weight: 400; color: var(--mut); margin-left: 8px; letter-spacing: 0; }
+
+/* visible selection for d-pad / glasses navigation, and large targets */
+button:focus-visible, button:focus, input:focus-visible { outline: 4px solid #ffd54a; outline-offset: 2px; }
+#viewerButtons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+#viewerButtons button { font-size: 5vw; min-height: 48px; padding: 12px 20px; border-radius: 12px; }

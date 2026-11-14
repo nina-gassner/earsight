@@ -8,6 +8,7 @@
  */
 import { Sonifier } from '../audio/sonifier';
 import { LinkSupplier, LinkViewer, normalizeCode, type LinkConfig, type ViewKind } from '../link';
+import { enableGroupNav, focusFirst } from './nav';
 import { drawVisionFrame, say, type ViewMode } from './visionMode';
 
 export type Role = 'select' | 'alone' | 'supplier' | 'viewer';
@@ -40,6 +41,12 @@ export function initRoles(h: RoleHooks) {
     else if (r === 'viewer') startViewer();
   }));
 
+  for (const id of ['roleScreen', 'modeBar', 'stageBar', 'supplierBar', 'viewerButtons']) { const c = document.getElementById(id); if (c) enableGroupNav(c); }
+  const roleScreen = $<HTMLElement>('roleScreen');
+  const focusRoles = () => { if (state.current === 'select') focusFirst(roleScreen, 'button[data-role]'); };
+  focusRoles();
+  window.addEventListener('keydown', () => { if (state.current === 'select' && !roleScreen.contains(document.activeElement)) focusRoles(); });
+
   // ------------------------------------------------------------------ supplier
   let link: LinkSupplier | null = null;
   function startSupplier() {
@@ -65,24 +72,40 @@ export function initRoles(h: RoleHooks) {
     };
     const params = new URLSearchParams(location.search);
     if (params.get('code')) input.value = params.get('code')!;
-    const doConnect = () => {
+    // iOS Safari / Chrome only reveal a device's real local address (instead of a hidden ".local" name that many networks
+    // cannot resolve) once the page has camera access. The supplier needs the camera anyway, so ask first, then connect.
+    let camStream: MediaStream | null = null;
+    const askCamera = async () => {
+      try {
+        camStream = await Promise.race([
+          navigator.mediaDevices.getUserMedia({ video: true }),
+          new Promise<null>((res) => setTimeout(() => res(null), 8000)),
+        ]);
+      } catch { /* denied: connect anyway */ }
+    };
+    const releaseCamera = () => { camStream?.getTracks().forEach((t) => t.stop()); camStream = null; };
+    const doConnect = async () => {
       const code = normalizeCode(input.value);
       if (!code) { status.textContent = 'The code has 6 letters and numbers, as shown on the viewer.'; return; }
       link?.close();
+      status.textContent = 'Allow the camera if asked, then connecting…';
+      await askCamera();
       link = new LinkSupplier(code);
       status.textContent = 'Connecting…';
       link.onChange = () => {
         if (link!.status === 'connected') { remember(code); renderRecent(); }
+        if (link!.status !== 'connecting') releaseCamera(); // the page starts the camera itself on Start
         status.textContent = link!.status === 'connected' ? 'Connected to the viewer. Choose the view below, then press Start.'
           : link!.status === 'error' ? link!.detail
           : link!.status === 'closed' ? 'The viewer disconnected. Enter the code again.'
           : 'Connecting…';
+        if (link!.ice) status.textContent += ' [' + link!.ice + ']';
         status.classList.toggle('ok', link!.status === 'connected');
         status.classList.toggle('err', link!.status === 'error' || link!.status === 'closed');
       };
       h.sonifier.onUpdate = (l, r, rate, c, hh) => link?.sendAudio(l, r, rate, c, hh);
       link.startStreaming(
-        (): LinkConfig => { const m = h.vision.getMode(); return { mode: m === 'light' ? 'light' : 'peripheral', mirror: h.mirror(), pan: h.sonifier.panStrength }; },
+        (): LinkConfig => { const m = h.vision.getMode(); return { mode: m === 'light' ? 'light' : 'peripheral', mirror: h.mirror(), pan: h.sonifier.panStrength, vol: Number((document.getElementById('rVol') as HTMLInputElement | null)?.value ?? 100) / 100 }; },
         () => h.pictureFor(h.vision.getMode() === 'light' ? 'light' : 'peripheral'),
       );
     };
@@ -116,15 +139,16 @@ export function initRoles(h: RoleHooks) {
       info.hidden = connected; // once connected the viewer only shows the picture
       codeEl.textContent = viewer.code;
       stateEl.textContent = viewer.status === 'error' ? viewer.detail
-        : viewer.status === 'waiting' ? 'Enter this code on the supplier device (your phone).'
+        : viewer.status === 'waiting' ? (viewer.detail || 'Enter this code on the supplier device (your phone).')
         : viewer.status === 'connected' ? '' : 'Getting a code…';
+      if (viewer.ice) stateEl.textContent += ' [' + viewer.ice + ']';
       if (viewer.status === 'waiting' && spoken !== viewer.code) { spoken = viewer.code; say('Your code is ' + viewer.code.split('').join(' ') + '.'); }
       if (!connected) { son.silence(); picture = null; }
       else say('Connected.');
     };
     viewer.onMessage = async (m) => {
       if (m.t === 'a') { if (m.n <= lastAudioSeq) return; lastAudioSeq = m.n; son.update(m.l, m.r, m.rate, m.c, m.h); }
-      else if (m.t === 'cfg') { cfg = { mode: m.mode, mirror: m.mirror, pan: m.pan }; son.panStrength = m.pan; }
+      else if (m.t === 'cfg') { cfg = { mode: m.mode, mirror: m.mirror, pan: m.pan }; son.panStrength = m.pan; if (typeof m.vol === 'number') son.setVolume(m.vol); }
       else if (m.t === 'pic' && !decoding && m.n > lastPicSeq) {
         lastPicSeq = m.n;
         decoding = true;
@@ -137,6 +161,9 @@ export function initRoles(h: RoleHooks) {
       }
     };
     viewer.start();
+    $<HTMLButtonElement>('viewerRepeat').onclick = () => say(viewer.status === 'connected' ? 'Connected.' : 'Your code is ' + viewer.code.split('').join(' ') + '.');
+    $<HTMLButtonElement>('viewerRestart').onclick = () => location.reload();
+    focusFirst($<HTMLElement>('viewerButtons'));
 
     const draw = () => {
       requestAnimationFrame(draw);
@@ -153,7 +180,7 @@ export function initRoles(h: RoleHooks) {
     let hold = 0;
     const stage = $<HTMLElement>('viewerStage');
     let downAt = 0;
-    stage.addEventListener('pointerdown', () => { downAt = performance.now(); clearTimeout(hold); hold = window.setTimeout(() => location.reload(), 5000); });
+    stage.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest('button')) return; downAt = performance.now(); clearTimeout(hold); hold = window.setTimeout(() => location.reload(), 5000); });
     // a short tap says the code (or the state) again
     stage.addEventListener('pointerup', () => {
       if (downAt && performance.now() - downAt < 400) say(viewer.status === 'connected' ? 'Connected.' : 'Your code is ' + viewer.code.split('').join(' ') + '.');
