@@ -210,6 +210,9 @@ el.depthSize.addEventListener('change', () => depth?.setSize(Number(el.depthSize
 el.cap.addEventListener('change', () => { if (running && el.source.value.startsWith('cam:')) void start(); });
 el.source.addEventListener('change', () => { if (running) void start(); });
 el.backend.addEventListener('change', () => { if (running && el.depthOn.checked) void startDepth(); });
+// the depth (middle) panel is only shown when depth is switched on: the default view is just camera + approach
+const syncPanels = () => { $('pMid').hidden = !el.depthOn.checked; el.panels.classList.toggle('two', !el.depthOn.checked); };
+el.depthOn.addEventListener('change', syncPanels); syncPanels();
 el.depthOn.addEventListener('change', () => { if (el.depthOn.checked) { if (running) void startDepth(); } else stopDepth('off'); });
 
 // ---------------------------------------------------------------- rendering

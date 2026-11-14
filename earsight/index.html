@@ -8,14 +8,22 @@
 </head>
 <body>
   <header>
-    <h1>Earsight — Approach Explorer</h1>
-    <span class="sub">Research prototype · frames are processed locally · no audio, labels or alarms</span>
+    <h1>Earsight</h1>
+    <span class="sub">Hear what is coming toward you. Put on headphones, point the camera ahead and press Start.</span>
   </header>
 
   <section id="controls">
-    <div class="row">
-      <button id="btnStart" class="primary">Start camera</button>
-      <button id="btnStop" disabled>Stop</button>
+    <div class="row main">
+      <button id="btnStart" class="primary big">Start</button>
+      <button id="btnStop" class="big" disabled>Stop</button>
+      <label class="chk big"><input type="checkbox" id="chkSound" checked /> Sound</label>
+      <label class="vol">Volume <input type="range" id="rVol" min="0" max="1" step="0.05" value="1" /></label>
+    </div>
+    <div id="message" role="status" hidden></div>
+    <div id="progress" hidden><div class="bar"><div id="progressFill"></div></div><span id="progressText"></span></div>
+    <details id="more">
+      <summary>More options</summary>
+    <div class="row more-row">
       <div class="seg" id="camToggle" role="group" aria-label="Camera to use">
         <button id="btnCamLaptop" class="on" type="button">Laptop camera</button><button id="btnCamPhone" type="button">Phone camera (stream to laptop)</button>
       </div>
@@ -25,7 +33,6 @@
       </label>
       <label class="chk"><input type="checkbox" id="chkMirror" checked /> Mirror</label>
       <label class="chk"><input type="checkbox" id="chkDepth" /> Depth</label>
-      <label class="chk"><input type="checkbox" id="chkSound" checked /> Sound</label>
       <label>Sound follows
         <select id="selAudioSrc">
           <option value="approach">3rd panel: approach</option>
@@ -37,7 +44,6 @@
       <label>Closeness threshold (2nd panel) <output id="oCloseThr">0.60</output>
         <input type="range" id="rCloseThr" min="0.3" max="0.95" step="0.05" value="0.6" />
       </label>
-      <label>Volume <input type="range" id="rVol" min="0" max="1" step="0.05" value="1" /></label>
       <label>Depth backend
         <select id="selBackend">
           <option value="webgpu">WebGPU (fp16, recommended)</option>
@@ -57,8 +63,6 @@
         <div class="hint">The phone will warn about the certificate (self-signed, made by your own dev server): accept it. Hold the phone in landscape.</div>
       </div>
     </div>
-    <div id="message" role="status" hidden></div>
-    <div id="progress" hidden><div class="bar"><div id="progressFill"></div></div><span id="progressText"></span></div>
     <details id="adv">
       <summary>Advanced settings</summary>
       <div class="grid">
@@ -113,11 +117,12 @@
       <button type="button" id="btnResetAdv">Reset advanced settings to defaults</button>
       <div id="effects" class="hint"></div>
     </details>
+    </details>
   </section>
 
   <main id="panels">
     <figure class="panel" id="pLeft">
-      <figcaption><b>Camera</b> <span class="ts" id="tsLeft">—</span></figcaption>
+      <figcaption><b>What the camera sees</b> <span class="ts" id="tsLeft">—</span></figcaption>
       <div class="stack"><canvas id="cvLeft" class="mirrorable"></canvas><canvas id="dbgLeft" class="overlay"></canvas></div>
     </figure>
     <figure class="panel" id="pMid">
@@ -126,7 +131,7 @@
       <div class="legend"><span><i class="sw" style="background:#fff"></i>closer</span><span><i class="sw" style="background:#000;border:1px solid #666"></i>farther</span></div>
     </figure>
     <figure class="panel" id="pRight">
-      <figcaption><b>Approach evidence</b> <span class="ts" id="tsRight">—</span></figcaption>
+      <figcaption><b>What is coming toward you</b> <span class="ts" id="tsRight">—</span></figcaption>
       <div class="stack"><canvas id="cvRight" class="mirrorable"></canvas><canvas id="hatch" class="mirrorable overlay"></canvas><canvas id="dbgRight" class="overlay"></canvas></div>
       <div class="legend">
         <span><i class="sw" style="background:#000;border:1px solid #666"></i>dark, valid support: no positive approach evidence</span>
@@ -136,6 +141,7 @@
     </figure>
   </main>
 
+  <details id="tech"><summary>Technical details</summary>
   <section id="stats">
     <div id="statsLine"></div>
     <div id="synthLine"></div>
@@ -145,6 +151,7 @@
     “Approaching” means the distance between a surface and the camera is decreasing. The right panel is a local optical-expansion proxy under
     geometric assumptions — not a measurement of 3-D motion (see README for limits). Depth model: onnx-community/depth-anything-v2-small.
   </footer>
+  </details>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
