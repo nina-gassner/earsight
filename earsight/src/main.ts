@@ -26,7 +26,7 @@ const el = {
   cap: $<HTMLSelectElement>('selCap'), proc: $<HTMLSelectElement>('selProc'), depthSize: $<HTMLSelectElement>('selDepthSize'),
   win: $<HTMLInputElement>('rWin'), sens: $<HTMLInputElement>('rSens'), sm: $<HTMLInputElement>('rSm'), dsm: $<HTMLInputElement>('rDsm'),
   gate: $<HTMLInputElement>('chkGate'), near: $<HTMLInputElement>('rNear'), unknown: $<HTMLInputElement>('chkUnknown'), points: $<HTMLInputElement>('chkPoints'), fits: $<HTMLInputElement>('chkFits'),
-  sound: $<HTMLInputElement>('chkSound'), audioSrc: $<HTMLSelectElement>('selAudioSrc'), flip: $<HTMLInputElement>('chkFlip'), vol: $<HTMLInputElement>('rVol'),
+  sound: $<HTMLInputElement>('chkSound'), audioSrc: $<HTMLSelectElement>('selAudioSrc'), flip: $<HTMLInputElement>('chkFlip'),
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
@@ -92,12 +92,11 @@ function sonify(kind: 'approach' | 'closeness', values: ArrayLike<number>, w: nu
   sonifier.update(lv.left, lv.right, rateFromCloseness(urgency), closeness, height);
 }
 el.sound.addEventListener('change', async () => {
-  if (el.sound.checked) { try { await sonifier.enable(); sonifier.setVolume(Number(el.vol.value)); } catch (e) { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); } }
+  if (el.sound.checked) { try { await sonifier.enable(); sonifier.setVolume(1); } catch (e) { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); } }
   else await sonifier.disable();
 });
 const closeOut = $('oCloseThr');
 el.closeThr.addEventListener('input', () => { closeOut.textContent = Number(el.closeThr.value).toFixed(2); });
-el.vol.addEventListener('input', () => sonifier.setVolume(Number(el.vol.value)));
 const setPan = () => { sonifier.panStrength = Number(el.pan.value); };
 bindRange(el.pan, 'oPan', (v) => v.toFixed(1), setPan);
 el.audioSrc.addEventListener('change', () => { sonifier.silence(); gates.approach.reset(); gates.closeness.reset(); });
@@ -151,7 +150,7 @@ function drawUnavailable(text: string) {
 
 // ---------------------------------------------------------------- advanced settings: remembered in this browser
 const ADV_KEY = 'earsight.advanced.v1';
-const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rField', 'rVol', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rField', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
 const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
 function loadAdvanced() {
   try {
@@ -444,7 +443,7 @@ el.source.addEventListener('change', syncCamToggle);
 async function start() {
   const seq = ++startSeq;
   try { (navigator as any).wakeLock?.request('screen'); } catch { /* optional */ }
-  if (el.sound.checked) void sonifier.enable().then(() => sonifier.setVolume(Number(el.vol.value))).catch((e) => { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); });
+  if (el.sound.checked) void sonifier.enable().then(() => sonifier.setVolume(1)).catch((e) => { el.sound.checked = false; msg('Audio could not start: ' + (e as Error).message, 'err'); });
   msg('');
   stopSource();
   lastMap = null; lastDepth = null; lastMotionT = lastDepthT = lastCamT = 0; synthStats = '';

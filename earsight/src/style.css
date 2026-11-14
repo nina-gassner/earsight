@@ -50,8 +50,6 @@ footer { padding: 8px 16px 20px; color: var(--mut); font-size: 12px; max-width: 
 .row.main { gap: 14px; margin-top: 4px; }
 button.big { font-size: 18px; padding: 12px 28px; border-radius: 10px; }
 label.chk.big { font-size: 16px; }
-label.vol { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; color: var(--fg); }
-label.vol input { width: 140px; }
 #more > summary, #tech > summary { padding: 6px 0; }
 #tech { padding: 0 16px 16px; }
 #panels.two { grid-template-columns: repeat(2, 1fr); }

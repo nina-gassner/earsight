@@ -59,6 +59,8 @@ export class Sonifier {
   private wasSilent = true;
   private height = 0.5;
   volume = 1;
+  /** called with every update (used to share the audio data with another device) */
+  onUpdate: ((left: number, right: number, rate: number, closeness: number, height: number) => void) | null = null;
   /** left/right exaggeration: fully one-sided once the left/right balance reaches 1/panStrength (1 = only at the extreme) */
   panStrength = 2.5;
 
@@ -85,6 +87,7 @@ export class Sonifier {
 
   /** rate in Hz (0 = silent), left/right 0..1 loudness per ear, closeness 0..1 sets loudness, height 0 (top)..1 (bottom) sets pitch */
   update(left: number, right: number, rate: number, closeness: number, height = 0.5) {
+    this.onUpdate?.(left, right, rate, closeness, height);
     this.left = left; this.right = right; this.rate = rate; this.closeness = closeness; this.height = height;
     this.lastUpdate = performance.now();
   }
