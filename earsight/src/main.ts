@@ -467,11 +467,13 @@ async function start() {
       if (camera.ultraWideActive && Number(el.hfov.value) < 100) { el.hfov.value = '105'; el.hfov.dispatchEvent(new Event('input')); }
       else if (!camera.ultraWideActive && Number(el.hfov.value) === 105) { el.hfov.value = '70'; el.hfov.dispatchEvent(new Event('input')); }
       if (seq !== startSeq) { camera.stop(); return; }
-      populateSources(await camera.listDevices());
+      const devs = await camera.listDevices();
+      populateSources(devs);
       const actual = camera.settings?.deviceId;
+      const usedLabel = devs.find((d) => d.deviceId === actual)?.label || 'unnamed camera';
       if (actual) el.source.value = 'cam:' + actual;
       setAspect(camera.width, camera.height);
-      el.effects.textContent = `Camera ${camera.width}×${camera.height}` + (camera.settings?.frameRate ? ` @ ${Math.round(camera.settings.frameRate)} fps requested/reported` : '') + ` · ${camera.effectsNote}`;
+      el.effects.textContent = `Analysing: “${usedLabel}” · FOV ${el.hfov.value}° · Camera ${camera.width}×${camera.height}` + (camera.settings?.frameRate ? ` @ ${Math.round(camera.settings.frameRate)} fps requested/reported` : '') + ` · ${camera.effectsNote}`;
       camera.onFrames(onSourceFrame);
     }
     if (!motion) {
