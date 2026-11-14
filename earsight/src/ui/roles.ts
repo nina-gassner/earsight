@@ -131,12 +131,20 @@ export function initRoles(h: RoleHooks) {
       else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
     };
     requestAnimationFrame(draw);
-    try { void document.documentElement.requestFullscreen?.(); } catch { /* not available everywhere */ }
+    // no requestFullscreen here: glasses browsers can leave a black screen (the stage already covers the whole viewport)
 
-    // the only control on the viewer: hold the screen for two seconds to start over
+    // controls on the viewer: tap = say the code again, hold for five seconds = start over
     let hold = 0;
     const stage = $<HTMLElement>('viewerStage');
-    stage.addEventListener('pointerdown', () => { clearTimeout(hold); hold = window.setTimeout(() => location.reload(), 2000); });
+    let downAt = 0;
+    stage.addEventListener('pointerdown', () => { downAt = performance.now(); clearTimeout(hold); hold = window.setTimeout(() => location.reload(), 5000); });
+    // a short tap says the code (or the state) again
+    stage.addEventListener('pointerup', () => {
+      if (downAt && performance.now() - downAt < 400) say(viewer.status === 'connected' ? 'Connected.' : 'Your code is ' + viewer.code.split('').join(' ') + '.');
+      downAt = 0;
+    });
+    window.addEventListener('error', (e) => { stateEl.textContent = 'Error: ' + e.message; info.hidden = false; });
+    window.addEventListener('unhandledrejection', (e) => { stateEl.textContent = 'Error: ' + ((e.reason as Error)?.message ?? String(e.reason)); info.hidden = false; });
     for (const t of ['pointerup', 'pointercancel', 'pointerleave'] as const) stage.addEventListener(t, () => clearTimeout(hold));
   }
 
