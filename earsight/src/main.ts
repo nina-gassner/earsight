@@ -8,6 +8,7 @@ import { SyntheticSource } from './synthetic/source';
 import { SCENES, type SceneKind } from './synthetic/scenes';
 import { measureApproach } from './synthetic/metrics';
 import { Sonifier } from './audio/sonifier';
+import { initVisionModes } from './ui/visionMode';
 import { suppressNonObjects, extractObjects, APPROACH_OBJECT_OPTS, CLOSENESS_OBJECT_OPTS } from './motion/objects';
 import { computeStereoLevels, weightedCloseness, verticalCentroid } from './audio/levels';
 import { rateFromCloseness } from './audio/sonifier';
@@ -29,7 +30,7 @@ const el = {
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
-  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
+  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), field: $<HTMLInputElement>('rField'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
   cvLeft: $<HTMLCanvasElement>('cvLeft'), cvMid: $<HTMLCanvasElement>('cvMid'), cvRight: $<HTMLCanvasElement>('cvRight'), hatch: $<HTMLCanvasElement>('hatch'),
   dbgLeft: $<HTMLCanvasElement>('dbgLeft'), dbgRight: $<HTMLCanvasElement>('dbgRight'),
@@ -150,7 +151,7 @@ function drawUnavailable(text: string) {
 
 // ---------------------------------------------------------------- advanced settings: remembered in this browser
 const ADV_KEY = 'earsight.advanced.v1';
-const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rVol', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rField', 'rVol', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
 const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
 function loadAdvanced() {
   try {
@@ -195,6 +196,7 @@ bindRange(el.pathW, 'oPathW', (v) => v.toFixed(1), pushMotionSettings);
 bindRange(el.turn, 'oTurn', (v) => String(v), pushMotionSettings);
 bindRange(el.speed, 'oSpeed', (v) => v.toFixed(1), pushMotionSettings);
 bindRange(el.hfov, 'oHfov', (v) => String(v), pushMotionSettings);
+bindRange(el.field, 'oField', (v) => String(v), () => { /* read by the vision view */ });
 bindRange(el.sm, 'oSm', (v) => String(v), pushMotionSettings);
 bindRange(el.dsm, 'oDsm', (v) => String(v), () => { if (depth) depth.normalizer.settings.boundsSmoothingMs = Number(el.dsm.value); });
 el.gate.addEventListener('change', pushMotionSettings);
@@ -555,3 +557,17 @@ motion = new MotionClient({ onReady: () => pushMotionSettings(), onError: (m) =>
   start: (src: string) => { el.source.value = src; return start(); },
   motion: () => motion,
 };
+
+// ---------------------------------------------------------------- view modes (settings / peripheral / light perception)
+initVisionModes({
+  camCanvas: () => el.cvLeft,
+  depthCanvas: () => el.cvMid,
+  depthReady: () => depthState === 'ready' && lastDepth !== null,
+  depthFailed: () => depthState === 'unavailable',
+  mirror: () => el.mirror.checked,
+  fieldPercent: () => Number(el.field.value),
+  setDepth: (on) => { if (el.depthOn.checked !== on) { el.depthOn.checked = on; el.depthOn.dispatchEvent(new Event('change')); } },
+  setSound: (on) => { el.sound.checked = on; },
+  start: () => { void start(); },
+  stop: () => { sonifier.silence(); startSeq++; stopSource(); setRunning(false); },
+});

@@ -7,6 +7,15 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="modeBar" role="group" aria-label="View mode">
+    <button type="button" data-mode="settings" class="on" aria-pressed="true">Settings</button>
+    <button type="button" data-mode="peripheral" aria-pressed="false" aria-label="Peripheral vision view: shows the camera picture in the centre of the screen">Peripheral vision</button>
+    <button type="button" data-mode="light" aria-pressed="false" aria-label="Light perception view: shows depth as brightness, closer is brighter">Light perception</button>
+  </div>
+  <div id="visionStage" hidden>
+    <canvas id="visionCanvas" aria-label="Vision display"></canvas>
+    <button type="button" id="visionGo" hidden aria-label="Tap anywhere to start the camera">Tap to start</button>
+  </div>
   <header>
     <h1>Earsight</h1>
     <span class="sub">Hear what is coming toward you. Put on headphones, point the camera ahead and press Start.</span>
@@ -98,6 +107,9 @@
         </label>
         <label>Left/right exaggeration <output id="oPan">2.5</output>× (1 = gentle, higher = a smaller tilt already plays fully in one ear; the transition is smooth)
           <input type="range" id="rPan" min="1" max="8" step="0.5" value="2.5" />
+        </label>
+        <label>Peripheral view: visible window <output id="oField">45</output> % of the screen (set before switching to the peripheral view)
+          <input type="range" id="rField" min="15" max="100" step="5" value="45" />
         </label>
         <label>Assumed closing speed <output id="oSpeed">1.4</output> m/s
           <input type="range" id="rSpeed" min="0.5" max="10" step="0.1" value="1.4" />

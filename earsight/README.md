@@ -148,3 +148,11 @@ QR troubleshooting: the QR code only appears after pressing **Run on phone (QR)*
 * Better static-obstacle detection needs a different signal (e.g. a *metric* depth model, depth-from-motion with known speed, or a depth sensor). That would change the specified model, so it was not done silently.
 * Ground-truth, scene and motion are simulated (no blur, exposure change, rolling shutter, real gait). The grid search is small (16 settings, 7 walks, train/validation split by walk), so the numbers are indicative, not guarantees. Real hardware testing is still required.
 * The path gate assumes the camera points where you walk and a roughly known speed; a hand-held phone aimed elsewhere breaks that assumption (checkbox "Only things on a collision path" turns it off).
+
+## View modes (accessibility)
+A mode bar at the top switches between three views:
+1. **Settings** – the normal page with all controls.
+2. **Peripheral vision** (tunnel vision) – no controls visible. The camera picture is shown at full-screen scale but only through a round window in the centre of the display, the rest stays black (nothing is scaled down; only the centre of what the camera sees is used). The window size is set beforehand in Settings → Advanced settings → "Peripheral view: visible window".
+3. **Light perception** – no controls visible. The display shows the depth model output (middle panel: closer = brighter) full screen, so brightness itself carries depth. This turns Depth on automatically; it needs a device where the depth model runs (WebGPU), and the page announces by speech if it does not.
+
+Sound is switched on in both vision modes. **Leave a vision mode by holding the screen for two seconds (or Escape).** The page announces the mode and how to leave by speech. `?mode=peripheral` or `?mode=light` in the address (or the remembered last mode) opens straight into that view; one tap is then needed to start the camera. Not tested with real users or on a real phone yet.
