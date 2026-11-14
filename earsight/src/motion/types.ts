@@ -99,14 +99,14 @@ export interface MotionSettings {
 export const DEFAULT_MOTION_SETTINGS: MotionSettings = {
   procWidth: 320,
   windowMs: 200,
-  sensitivity: 1.6, // calibrated on Sponza walk-throughs together with the path gate (see README)
+  sensitivity: 1.4, // calibrated on Sponza walk-throughs together with the path gate (see README)
   smoothingMs: 200,
   useDepthGate: true,
-  nearThreshold: 0.15,
+  nearThreshold: 0.45,
   egoComp: true,
   derotate: true,
   pathGate: true, // ignore things we merely pass (tables, columns) but keep near misses: see pathHalfWidth
-  pathHalfWidth: 1.0, // kept fully up to 1.0 m lateral miss distance, fades out over the next 0.5 m
+  pathHalfWidth: 1.5, // kept fully up to 1.5 m lateral miss distance, fades out over the next 0.5 m
   maxTurnDegPerSec: 45,
   walkSpeed: 1.4,
   hfovDeg: 70,
