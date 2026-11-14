@@ -29,7 +29,7 @@ const el = {
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
-  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
+  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), pan: $<HTMLInputElement>('rPan'), ultra: $<HTMLInputElement>('chkUltra'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
   cvLeft: $<HTMLCanvasElement>('cvLeft'), cvMid: $<HTMLCanvasElement>('cvMid'), cvRight: $<HTMLCanvasElement>('cvRight'), hatch: $<HTMLCanvasElement>('hatch'),
   dbgLeft: $<HTMLCanvasElement>('dbgLeft'), dbgRight: $<HTMLCanvasElement>('dbgRight'),
@@ -150,7 +150,7 @@ function drawUnavailable(text: string) {
 
 // ---------------------------------------------------------------- advanced settings: remembered in this browser
 const ADV_KEY = 'earsight.advanced.v1';
-const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rVol', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rPan', 'rVol', 'rSpeed', 'rHfov', 'chkUltra', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
 const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
 function loadAdvanced() {
   try {
@@ -207,6 +207,7 @@ el.mirror.addEventListener('change', () => { el.panels.classList.toggle('mirror'
 el.panels.classList.toggle('mirror', el.mirror.checked);
 for (const c of [el.points, el.fits, el.unknown]) c.addEventListener('change', () => { if (lastMap) { renderRight(lastMap); } redrawOverlays(); });
 el.depthSize.addEventListener('change', () => depth?.setSize(Number(el.depthSize.value)));
+el.ultra.addEventListener('change', () => { if (running && el.source.value.startsWith('cam:')) void start(); });
 el.cap.addEventListener('change', () => { if (running && el.source.value.startsWith('cam:')) void start(); });
 el.source.addEventListener('change', () => { if (running) void start(); });
 el.backend.addEventListener('change', () => { if (running && el.depthOn.checked) void startDepth(); });
@@ -461,7 +462,10 @@ async function start() {
     } else {
       const [cw, ch] = el.cap.value.split('x').map(Number);
       const id = sel.slice(4) || undefined;
-      await camera.start(id, cw, ch);
+      await camera.start(id, cw, ch, el.ultra.checked);
+      // the wider view changes the geometry the motion model assumes (focal length)
+      if (camera.ultraWideActive && Number(el.hfov.value) < 100) { el.hfov.value = '105'; el.hfov.dispatchEvent(new Event('input')); }
+      else if (!camera.ultraWideActive && Number(el.hfov.value) === 105) { el.hfov.value = '70'; el.hfov.dispatchEvent(new Event('input')); }
       if (seq !== startSeq) { camera.stop(); return; }
       populateSources(await camera.listDevices());
       const actual = camera.settings?.deviceId;

@@ -33,6 +33,9 @@ export function describeCameraError(e: unknown): string {
   }
 }
 
+/** device labels that identify an ultra-wide rear lens (iOS: "Back Ultra Wide Camera"; some Android builds: "...0.5x..." or "ultra") */
+export const ULTRA_WIDE_LABEL = /ultra|0[.,]5\s*x?|weitwinkel/i;
+
 export class CameraController {
   readonly video: HTMLVideoElement;
   stream: MediaStream | null = null;
@@ -42,6 +45,8 @@ export class CameraController {
   settings: MediaTrackSettings | null = null;
   /** notes about optional camera effects we could / could not disable */
   effectsNote = '';
+  /** true if the last start() really got a wider-than-normal view (ultra-wide lens or zoom < 1) */
+  ultraWideActive = false;
 
   constructor() {
     this.video = document.createElement('video');
@@ -65,7 +70,7 @@ export class CameraController {
     this.settings = null;
   }
 
-  async start(deviceId: string | undefined, width: number, height: number): Promise<void> {
+  async start(deviceId: string | undefined, width: number, height: number, ultraWide = false): Promise<void> {
     if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('getUserMedia unavailable'), { name: 'SecurityError' });
     this.stop(); // stop old tracks BEFORE opening the new device
     const build = (relaxed: boolean): MediaStreamConstraints => ({
@@ -82,9 +87,32 @@ export class CameraController {
       if (e?.name === 'OverconstrainedError' || e?.name === 'ConstraintNotSatisfiedError') stream = await navigator.mediaDevices.getUserMedia(build(true));
       else throw e;
     }
+    let track = stream.getVideoTracks()[0];
+    this.ultraWideActive = false;
+    let ultraNote = '';
+    if (ultraWide) {
+      // device labels are only filled in after permission was granted, hence the lookup after the first stream
+      const wide = (await this.listDevices()).find((d) => ULTRA_WIDE_LABEL.test(d.label));
+      if (wide && wide.deviceId !== track.getSettings().deviceId) {
+        stream.getTracks().forEach((t) => t.stop());
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: wide.deviceId }, width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: 30 } } });
+          track = stream.getVideoTracks()[0];
+          this.ultraWideActive = true; ultraNote = `ultra-wide lens (${wide.label})`;
+        } catch { // fall back to the normal lens
+          stream = await navigator.mediaDevices.getUserMedia(build(true)); track = stream.getVideoTracks()[0];
+          ultraNote = 'ultra-wide lens could not be opened';
+        }
+      } else if (wide) { this.ultraWideActive = true; ultraNote = `ultra-wide lens (${wide.label})`; }
+    }
     this.stream = stream;
-    const track = stream.getVideoTracks()[0];
     await this.disableEffects(track);
+    if (ultraWide && !this.ultraWideActive) {
+      const zmin = (track as any).getCapabilities?.()?.zoom?.min;
+      if (typeof zmin === 'number' && zmin < 1) { this.ultraWideActive = true; ultraNote = `zoom ${zmin}× (browser exposes the wide lens as zoom)`; }
+      else ultraNote = ultraNote || 'no ultra-wide lens found by this browser (pick it in the Source list if it is listed there)';
+    }
+    if (ultraNote) this.effectsNote = ultraNote + ' · ' + this.effectsNote;
     this.settings = track.getSettings();
     this.video.srcObject = stream;
     await this.video.play();
