@@ -7,6 +7,7 @@ const post = (m: DepthOutMsg, transfer: Transferable[] = []) => (self as unknown
 let model: any = null;
 let processor: any = null;
 let inputSize = 308;
+let failures = 0;
 
 env.allowLocalModels = false;
 env.useBrowserCache = true; // model files are kept in the browser Cache Storage after the first download
@@ -67,10 +68,13 @@ async function init(backend: 'webgpu' | 'wasm', size: number) {
   model = await AutoModel.from_pretrained(DEPTH_MODEL_ID, { device: backend, dtype, progress_callback });
   applySize();
   post({ type: 'status', text: 'Warming up model…' });
-  const warm = new RawImage(new Uint8ClampedArray(64 * 48 * 4).fill(128), 64, 48, 4);
+  // warm up at the size of a real frame (640x480): GPU buffers and shaders are allocated now, inside init (where a
+  // failure is reported cleanly), not on the first live frame
+  const warm = new RawImage(new Uint8ClampedArray(640 * 480 * 4).fill(128), 640, 480, 4);
   const inputs = await processor(warm);
   const o = await model(inputs);
   o.predicted_depth?.dispose?.();
+  inputs.pixel_values?.dispose?.();
   post({ type: 'ready', backend, dtype });
 }
 
@@ -78,7 +82,8 @@ async function infer(msg: Extract<DepthInMsg, { type: 'infer' }>) {
   const t0 = performance.now();
   const img = new RawImage(new Uint8ClampedArray(msg.rgba), msg.width, msg.height, 4);
   const inputs = await processor(img);
-  const out = await model(inputs);
+  let out: any;
+  try { out = await model(inputs); } finally { inputs.pixel_values?.dispose?.(); } // free the input every frame (GPU memory otherwise grows until the tab dies)
   const pd = out.predicted_depth;
   const dims: number[] = pd.dims;
   const h = dims[dims.length - 2], w = dims[dims.length - 1];
@@ -93,8 +98,10 @@ self.onmessage = async (e: MessageEvent<DepthInMsg>) => {
   try {
     if (m.type === 'init') await init(m.backend, m.inputSize);
     else if (m.type === 'setSize') { inputSize = m.inputSize; applySize(); }
-    else if (m.type === 'infer') await infer(m);
+    else if (m.type === 'infer') { await infer(m); failures = 0; }
   } catch (err: any) {
-    post({ type: 'error', message: String(err?.message ?? err), fatal: m.type === 'init' });
+    if (m.type === 'infer') failures++;
+    // an inference that keeps failing (GPU device lost, out of memory) is fatal: stop instead of retrying every frame
+    post({ type: 'error', message: String(err?.message ?? err), fatal: m.type === 'init' || failures >= 3 });
   }
 };

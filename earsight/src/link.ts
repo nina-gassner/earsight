@@ -42,6 +42,17 @@ export function normalizeCode(input: string): string | null {
   return c.length === CODE_LENGTH && [...c].every((ch) => CODE_ALPHABET.includes(ch)) ? c : null;
 }
 
+/** STUN finds the direct route; TURN (public relay) is the fallback when the two devices are behind different NATs / mobile data */
+const PEER_OPTIONS = {
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
+    ],
+  },
+};
+
 export const peerIdFor = (code: string) => 'earsight-' + code;
 
 /** never let data queue up: a late picture or beep is worthless, so when the link is behind we drop instead of buffering */
@@ -66,7 +77,7 @@ export class LinkViewer {
   private open() {
     this.peer?.destroy();
     this.set('connecting');
-    const peer = new Peer(peerIdFor(this.code));
+    const peer = new Peer(peerIdFor(this.code), PEER_OPTIONS);
     this.peer = peer;
     peer.on('open', () => this.set('waiting'));
     peer.on('connection', (conn) => {
@@ -99,7 +110,7 @@ export class LinkSupplier {
   private small = document.createElement('canvas');
 
   constructor(readonly code: string) {
-    this.peer = new Peer();
+    this.peer = new Peer(PEER_OPTIONS);
     this.peer.on('open', () => {
       // unordered: a lost packet must not hold up everything behind it (that is what makes a live feed lag by seconds)
       const conn = this.peer.connect(peerIdFor(code), { reliable: false });

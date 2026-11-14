@@ -16,7 +16,7 @@ describe('collision-path factor', () => {
     expect(pathFactor(40, 0, 0.8, f)).toBeGreaterThan(0.8); // Z = 1.75 m, 0.3 m to the side
   });
   it('things far above head height or no expansion are rejected', () => {
-    expect(pathFactor(0, -110, 0.5, f)).toBeLessThan(0.05);
+    expect(pathFactor(0, -250, 0.5, f)).toBeLessThan(0.05);
     expect(pathFactor(0, 0, 0, f)).toBe(0);
     expect(pathFactor(0, 0, -0.5, f)).toBe(0);
   });

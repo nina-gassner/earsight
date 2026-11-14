@@ -39,7 +39,12 @@ export function say(text: string) {
     const s = window.speechSynthesis;
     if (!s) return;
     s.cancel();
-    s.speak(new SpeechSynthesisUtterance(text));
+    const u = new SpeechSynthesisUtterance(text);
+    // the texts are English: without this a German browser reads them with a German voice (a thick German accent)
+    u.lang = 'en-US';
+    const voice = s.getVoices().find((x) => /^en[-_]US/i.test(x.lang)) ?? s.getVoices().find((x) => /^en/i.test(x.lang));
+    if (voice) u.voice = voice;
+    s.speak(u);
   } catch { /* speech is optional */ }
 }
 
@@ -77,7 +82,7 @@ export function initVisionModes(api: VisionApi) {
     if (mode === 'settings' || !api.immersive()) return;
     raf = requestAnimationFrame(frame);
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const W = Math.round(window.innerWidth * dpr), H = Math.round(window.innerHeight * dpr);
+    const W = Math.max(2, Math.round(stage.clientWidth * dpr)), H = Math.max(2, Math.round(stage.clientHeight * dpr));
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
     if (mode === 'peripheral') {
       drawVisionFrame(ctx, W, H, api.camCanvas(), api.mirror());
@@ -140,7 +145,6 @@ export function initVisionModes(api: VisionApi) {
     raf = requestAnimationFrame(frame);
     if (fromGesture) {
       go.hidden = true;
-      if (previous === 'settings') fullscreen();
       if (previous === 'settings' || !api.isRunning()) api.start();
     } else { go.hidden = false; go.focus(); } // browsers only start the camera after a tap
     api.onMode?.(m);
@@ -160,7 +164,7 @@ export function initVisionModes(api: VisionApi) {
     if (!api.immersive() && m !== 'settings') return;
     if (api.immersive() && b.closest('#stageBar')) showBar();
   }));
-  go.addEventListener('click', () => { go.hidden = true; fullscreen(); api.start(); });
+  go.addEventListener('click', () => { go.hidden = true; api.start(); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mode !== 'settings' && api.immersive()) leave(); });
   stage.addEventListener('pointerdown', (e) => {
     if ((e.target as HTMLElement).closest('#stageBar')) return;

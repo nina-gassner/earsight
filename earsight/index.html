@@ -33,15 +33,6 @@
     <button type="button" data-mode="peripheral" aria-pressed="false" aria-label="Peripheral vision view: shows the camera picture in the centre of the screen">Peripheral vision</button>
     <button type="button" data-mode="light" aria-pressed="false" aria-label="Light perception view: shows depth as brightness, closer is brighter">Light perception</button>
   </div>
-  <div id="visionStage" hidden>
-    <canvas id="visionCanvas" aria-label="Vision display"></canvas>
-    <button type="button" id="visionGo" hidden aria-label="Tap anywhere to start the camera">Tap to start</button>
-    <div id="stageBar" hidden role="group" aria-label="Switch view">
-      <button type="button" data-mode="settings" aria-pressed="false">Settings</button>
-      <button type="button" data-mode="peripheral" aria-pressed="false">Peripheral vision</button>
-      <button type="button" data-mode="light" aria-pressed="false">Light perception</button>
-    </div>
-  </div>
   <header>
     <h1>Earsight</h1>
     <span class="sub">Hear what is coming toward you. Put on headphones, point the camera ahead and press Start.</span>
@@ -154,6 +145,15 @@
     </details>
   </section>
 
+  <div id="visionStage" hidden>
+    <canvas id="visionCanvas" aria-label="Vision display"></canvas>
+    <button type="button" id="visionGo" hidden aria-label="Tap anywhere to start the camera">Tap to start</button>
+    <div id="stageBar" hidden role="group" aria-label="Switch view">
+      <button type="button" data-mode="settings" aria-pressed="false">Settings</button>
+      <button type="button" data-mode="peripheral" aria-pressed="false">Peripheral vision</button>
+      <button type="button" data-mode="light" aria-pressed="false">Light perception</button>
+    </div>
+  </div>
   <main id="panels">
     <figure class="panel" id="pLeft">
       <figcaption><b>What the camera sees</b> <span class="ts" id="tsLeft">—</span></figcaption>

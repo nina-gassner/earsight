@@ -65,8 +65,8 @@ label.chk.big { font-size: 16px; }
 #visionCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 #visionGo { position: absolute; inset: 0; width: 100%; height: 100%; background: rgba(0,0,0,.6); color: #fff; font-size: 8vw; border: 0; border-radius: 0; }
 #visionGo[hidden] { display: none; }
-body.vision { overflow: hidden; }
-body.vision > *:not(#visionStage) { display: none !important; }
+/* standalone role (Both): the view sits below the settings so progress and settings stay visible */
+body.vision #visionStage { position: relative; inset: auto; height: 60vh; margin: 8px 16px; border-radius: 10px; overflow: hidden; z-index: 1; }
 
 /* roles */
 #roleScreen { padding: 24px 16px; max-width: 640px; margin: 0 auto; }
