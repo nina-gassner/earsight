@@ -67,3 +67,30 @@ label.chk.big { font-size: 16px; }
 #visionGo[hidden] { display: none; }
 body.vision { overflow: hidden; }
 body.vision > *:not(#visionStage) { display: none !important; }
+
+/* roles */
+#roleScreen { padding: 24px 16px; max-width: 640px; margin: 0 auto; }
+#roleScreen button { display: block; width: 100%; margin: 10px 0; font-size: 20px; padding: 18px; border-radius: 12px; text-align: left; }
+#supplierBar { display: none; padding: 10px 16px 0; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+#supplierBar input { font-size: 22px; letter-spacing: 3px; text-transform: uppercase; width: 11ch; background: #1a1f27; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+#supStatus { font-size: 14px; color: var(--mut); }
+#supStatus.ok { color: #7fd69a; }
+#supStatus.err { color: #ff9a9a; }
+#viewerStage { display: none; position: fixed; inset: 0; z-index: 100; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; }
+#viewerCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#viewerInfo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 16px; }
+#viewerInfo[hidden] { display: none; }
+#viewerCode { font-size: 14vw; font-weight: 700; letter-spacing: .12em; color: #fff; }
+#viewerState { font-size: 4vw; color: var(--mut); }
+#stageBar { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 8px; padding: 12px; justify-content: center; flex-wrap: wrap; background: rgba(0,0,0,.75); }
+#stageBar[hidden] { display: none; }
+#stageBar button { font-size: 18px; padding: 12px 18px; border-radius: 10px; }
+#stageBar button.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+/* which parts of the page each role sees */
+body.role-select > *:not(#roleScreen) { display: none !important; }
+body:not(.role-select) #roleScreen { display: none; }
+body.role-supplier #supplierBar { display: flex; }
+body.role-supplier #modeBar button[data-mode="settings"] { display: none; }
+body.role-viewer > *:not(#viewerStage) { display: none !important; }
+body.role-viewer #viewerStage { display: block; }
+body.role-select #modeBar, body.role-viewer #modeBar { display: none; }

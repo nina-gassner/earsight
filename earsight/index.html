@@ -7,6 +7,27 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="roleScreen">
+    <h1>Earsight</h1>
+    <p>Hear what is coming toward you. What do you want to do?</p>
+    <button type="button" data-role="alone" class="primary">Use on this device</button>
+    <button type="button" data-role="supplier">Supplier: this device provides the camera</button>
+    <button type="button" data-role="viewer">Viewer: this device plays the sound and shows the picture</button>
+    <p class="hint">To use two devices (for example a phone and smart glasses): open this site on the glasses and choose <b>Viewer</b> to get a code. Open it on the phone, choose <b>Supplier</b> and type the code. Everything is then controlled from the phone.</p>
+  </div>
+  <div id="supplierBar">
+    <label>Code shown on the viewer <input id="supCode" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. K7M2QX" /></label>
+    <button type="button" id="supConnect" class="primary">Connect</button>
+    <span id="supStatus" role="status"></span>
+  </div>
+  <div id="viewerStage">
+    <canvas id="viewerCanvas" aria-label="Vision display"></canvas>
+    <div id="viewerInfo">
+      <div class="hint">Viewer</div>
+      <div id="viewerCode" aria-live="polite"></div>
+      <div id="viewerState" role="status">Getting a code…</div>
+    </div>
+  </div>
   <div id="modeBar" role="group" aria-label="View mode">
     <button type="button" data-mode="settings" class="on" aria-pressed="true">Settings</button>
     <button type="button" data-mode="peripheral" aria-pressed="false" aria-label="Peripheral vision view: shows the camera picture in the centre of the screen">Peripheral vision</button>
@@ -15,6 +36,11 @@
   <div id="visionStage" hidden>
     <canvas id="visionCanvas" aria-label="Vision display"></canvas>
     <button type="button" id="visionGo" hidden aria-label="Tap anywhere to start the camera">Tap to start</button>
+    <div id="stageBar" hidden role="group" aria-label="Switch view">
+      <button type="button" data-mode="settings" aria-pressed="false">Settings</button>
+      <button type="button" data-mode="peripheral" aria-pressed="false">Peripheral vision</button>
+      <button type="button" data-mode="light" aria-pressed="false">Light perception</button>
+    </div>
   </div>
   <header>
     <h1>Earsight</h1>
@@ -35,7 +61,6 @@
       <div class="seg" id="camToggle" role="group" aria-label="Camera to use">
         <button id="btnCamLaptop" class="on" type="button">Laptop camera</button><button id="btnCamPhone" type="button">Phone camera (stream to laptop)</button>
       </div>
-      <button id="btnShare" type="button" title="Another device scans the QR code and receives the sound and the picture of the current view; it needs no camera">Send sound + view to another device (QR)</button>
       <button id="btnRunOnPhone" type="button" title="Opens this whole app on the phone; the phone does all computing and sound">Run on phone (QR)</button>
       <label>Source
         <select id="selSource"></select>
@@ -107,9 +132,6 @@
         </label>
         <label>Left/right exaggeration <output id="oPan">2.5</output>× (1 = gentle, higher = a smaller tilt already plays fully in one ear; the transition is smooth)
           <input type="range" id="rPan" min="1" max="8" step="0.5" value="2.5" />
-        </label>
-        <label>Peripheral view: visible window <output id="oField">45</output> % of the screen (set before switching to the peripheral view)
-          <input type="range" id="rField" min="15" max="100" step="5" value="45" />
         </label>
         <label>Assumed closing speed <output id="oSpeed">1.4</output> m/s
           <input type="range" id="rSpeed" min="0.5" max="10" step="0.1" value="1.4" />

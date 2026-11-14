@@ -52,37 +52,28 @@ function printTerminalQr(httpServer: import('node:http').Server | import('node:h
 type AnyHttpServer = import('node:http').Server | import('node:https').Server | import('node:http2').Http2Server | null | undefined;
 
 /** WebSocket relay on /relay: phone -> laptop, only between sockets sharing the same room token. Used by dev AND preview servers. */
-export function attachRelay(httpServer: AnyHttpServer) {
+function attachRelay(httpServer: AnyHttpServer) {
   if (!httpServer) return;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4 * 1024 * 1024 });
-  const rooms = new Map<string, { laptops: Set<WebSocket>; phones: Set<WebSocket>; senders: Set<WebSocket>; viewers: Set<WebSocket> }>();
+  const rooms = new Map<string, { laptops: Set<WebSocket>; phones: Set<WebSocket> }>();
   httpServer.on('upgrade', (req, socket, head) => {
     const u = new URL(req.url ?? '', 'http://localhost');
     if (u.pathname !== '/relay') return; // leave Vite's own HMR socket alone
     const room = u.searchParams.get('room') ?? '';
     const role = u.searchParams.get('role');
-    if (!/^[a-z0-9]{12,64}$/i.test(room) || (role !== 'phone' && role !== 'laptop' && role !== 'sender' && role !== 'viewer')) { socket.destroy(); return; }
+    if (!/^[a-z0-9]{12,64}$/i.test(room) || (role !== 'phone' && role !== 'laptop')) { socket.destroy(); return; }
     wss.handleUpgrade(req, socket, head, (ws) => {
-      const r = rooms.get(room) ?? { laptops: new Set(), phones: new Set(), senders: new Set(), viewers: new Set() };
+      const r = rooms.get(room) ?? { laptops: new Set(), phones: new Set() };
       rooms.set(room, r);
-      const mine = role === 'phone' ? r.phones : role === 'laptop' ? r.laptops : role === 'sender' ? r.senders : r.viewers;
+      const mine = role === 'phone' ? r.phones : r.laptops;
       mine.add(ws);
       const tell = (set: Set<WebSocket>, text: string) => { for (const x of set) if (x.readyState === 1) x.send(text); };
       console.log(`  [relay] ${role} connected (room ${room.slice(0, 6)}…)`);
-      // share channel: the vision device ("sender") broadcasts audio parameters + vision frames to any number of "viewers"
-      const status = () => JSON.stringify({ t: 'status', sender: r.senders.size > 0, viewers: r.viewers.size });
-      if (role === 'sender' || role === 'viewer') { tell(r.senders, status()); tell(r.viewers, status()); }
-      if (role === 'sender' || role === 'viewer') { /* status already sent above */ }
-      else if (role === 'phone') { tell(r.laptops, 'phone-connected'); ws.send(r.laptops.size ? 'laptop-listening' : 'no-laptop'); }
+      if (role === 'phone') { tell(r.laptops, 'phone-connected'); ws.send(r.laptops.size ? 'laptop-listening' : 'no-laptop'); }
       else { tell(r.phones, 'laptop-listening'); if (r.phones.size > 0) ws.send('phone-connected'); }
       let frames = 0;
       let lastWarn = 0;
       ws.on('message', (data, isBinary) => {
-        if (role === 'sender') {
-          // viewers only receive; a slow viewer simply misses data (never queue)
-          for (const v of r.viewers) if (v.readyState === 1 && v.bufferedAmount < 1_000_000) v.send(data, { binary: isBinary });
-          return;
-        }
         if (role !== 'phone' || !isBinary) return;
         if (++frames === 1) console.log(`  [relay] first frame from phone (${(data as Buffer).length} bytes), ${r.laptops.size} laptop page(s) listening`);
         if (r.laptops.size === 0 && Date.now() - lastWarn > 2000) { lastWarn = Date.now(); ws.send('no-laptop'); }
@@ -92,8 +83,7 @@ export function attachRelay(httpServer: AnyHttpServer) {
         console.log(`  [relay] ${role} disconnected`);
         mine.delete(ws);
         if (role === 'phone') tell(r.laptops, r.phones.size ? 'phone-connected' : 'phone-left');
-        if (role === 'sender' || role === 'viewer') { tell(r.senders, status()); tell(r.viewers, status()); }
-        if (r.laptops.size === 0 && r.phones.size === 0 && r.senders.size === 0 && r.viewers.size === 0) rooms.delete(room);
+        if (r.laptops.size === 0 && r.phones.size === 0) rooms.delete(room);
       });
     });
   });

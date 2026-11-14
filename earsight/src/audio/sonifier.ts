@@ -60,6 +60,8 @@ export class Sonifier {
   private height = 0.5;
   volume = 1;
   /** called with every update (used to share the audio data with another device) */
+  /** no sound is played (the audio data is still produced and reported through onUpdate) */
+  muted = false;
   onUpdate: ((left: number, right: number, rate: number, closeness: number, height: number) => void) | null = null;
   /** left/right exaggeration: fully one-sided once the left/right balance reaches 1/panStrength (1 = only at the extreme) */
   panStrength = 2.5;
@@ -99,7 +101,7 @@ export class Sonifier {
     if (!ctx || !this.merger) return;
     const now = ctx.currentTime;
     const stale = performance.now() - this.lastUpdate > 400; // stalled pipeline / stopped source -> silence
-    if (stale || this.rate <= 0 || Math.max(this.left, this.right) < 0.05) { this.wasSilent = true; return; }
+    if (this.muted || stale || this.rate <= 0 || Math.max(this.left, this.right) < 0.05) { this.wasSilent = true; return; }
     if (this.wasSilent) { this.wasSilent = false; this.nextBeep = now; } // onset: beep immediately
     if (now < this.nextBeep) return;
     this.beep(now, Math.min(0.07, 0.6 / this.rate));
