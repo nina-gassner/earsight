@@ -64,6 +64,8 @@ export class ExpansionApproachEstimator implements ApproachEstimator {
   private refMean = NaN;
   private lastProcMs = 0;
   private baselineNow = 0;
+  /** camera rotation speed (deg/s) estimated this frame from the short windows; 0 if unknown */
+  private turnDegPerSec = 0;
 
   constructor(cv: CV, baseParams: ExpansionParams = DEFAULT_EXPANSION_PARAMS) {
     this.cv = cv;
@@ -300,6 +302,7 @@ export class ExpansionApproachEstimator implements ApproachEstimator {
     let nFits = 0;
 
     for (const T of this.tracks) T.supportedNow = false;
+    this.turnDegPerSec = 0;
     // per-track evidence over all (window, radius) scales: max, so a short window can catch a punch and a long one a slow approach
     const acc = new Map<Track, { w: number; wr: number; ws: number; conf: number }>(); // ws = weighted sum of sigmaRate
     const failReasons: Record<string, number> = {};
@@ -327,7 +330,13 @@ export class ExpansionApproachEstimator implements ApproachEstimator {
         owners.push(T);
       }
       if (corr.length < params.minPoints) continue;
-      if (this.s.derotate) derotate(corr, W, H, focalFromHfov(W, this.s.hfovDeg), 1.5 * (this.s.procWidth / 320));
+      if (this.s.derotate) {
+        const dr = derotate(corr, W, H, focalFromHfov(W, this.s.hfovDeg), 1.5 * (this.s.procWidth / 320));
+        if (dr.n >= 12 && dtw > 0 && dtw <= 0.35) {
+          const rate = (Math.hypot(dr.omega[0], dr.omega[1], dr.omega[2]) / dtw) * (180 / Math.PI);
+          if (Number.isFinite(rate)) this.turnDegPerSec = Math.max(this.turnDegPerSec, rate);
+        }
+      }
       for (const radFrac of wMs >= 500 ? [0.11] : [0.06, 0.11]) {
         const R = radFrac * W;
         const spacing = 0.7 * R;
@@ -445,9 +454,13 @@ export class ExpansionApproachEstimator implements ApproachEstimator {
     for (const T of this.tracks) {
       const nearT = this.depth && this.s.useDepthGate && this.s.nearThreshold > 0 ? sampleDepthPre(T.x / W, T.y / H) : 1;
       let shown = nearT < this.s.nearThreshold ? 0 : Math.max(T.fastEv, smoothstep(params.rateLow, params.rateHigh, T.rate) * smoothstep(params.zLow, params.zHigh, T.rate / Math.max(1e-6, T.sig / Math.sqrt(neff))) * smoothstep(0.1, 0.55, T.conf));
+      if (this.s.maxTurnDegPerSec > 0 && shown > 0) {
+        // while the camera turns fast, parallax / blur / residual rotation fake expansion: fade evidence out
+        shown *= 1 - smoothstep(this.s.maxTurnDegPerSec, this.s.maxTurnDegPerSec * 1.6, this.turnDegPerSec);
+      }
       if (this.s.pathGate && shown > 0) {
         // geometry uses the full (not baseline-subtracted) rate: that is what sets the distance
-        const pf = pathFactor(T.x - W / 2, T.y - H / 2, Math.max(1e-3, T.rate + this.baselineNow), focalFromHfov(W, this.s.hfovDeg), { ...DEFAULT_PATH_GATE, speed: this.s.walkSpeed });
+        const pf = pathFactor(T.x - W / 2, T.y - H / 2, Math.max(1e-3, T.rate + this.baselineNow), focalFromHfov(W, this.s.hfovDeg), { ...DEFAULT_PATH_GATE, speed: this.s.walkSpeed, halfWidthStart: this.s.pathHalfWidth, halfWidthEnd: this.s.pathHalfWidth + 0.5 });
         shown *= pf;
       }
       debugPoints.push({ x: T.x / W, y: T.y / H, supported: T.supportedNow, score: shown });

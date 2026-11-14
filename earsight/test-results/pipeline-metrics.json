@@ -1,12 +1,12 @@
 {
   "approach": {
-    "fgMean": 0.44,
+    "fgMean": 0.482,
     "fgCov": 1,
     "bgBright": 0,
     "bgMean": 0,
-    "allMean": 0.118,
-    "maxAll": 0.139,
-    "avgMs": 165.6,
+    "allMean": 0.13,
+    "maxAll": 0.15,
+    "avgMs": 218.7,
     "fits": 1106,
     "tracks": 357
   },
@@ -17,18 +17,18 @@
     "bgMean": 0,
     "allMean": 0,
     "maxAll": 0,
-    "avgMs": 144.9,
+    "avgMs": 168.9,
     "fits": 1198,
     "tracks": 388
   },
   "sideways": {
-    "fgMean": 0.006,
+    "fgMean": 0.011,
     "fgCov": 1,
-    "bgBright": 0.004,
-    "bgMean": 0.003,
-    "allMean": 0.005,
-    "maxAll": 0.019,
-    "avgMs": 148.8,
+    "bgBright": 0.006,
+    "bgMean": 0.005,
+    "allMean": 0.008,
+    "maxAll": 0.02,
+    "avgMs": 163.3,
     "fits": 1376,
     "tracks": 347
   },
@@ -39,7 +39,7 @@
     "bgMean": 0,
     "allMean": 0,
     "maxAll": 0,
-    "avgMs": 130.9,
+    "avgMs": 150.7,
     "fits": 1412,
     "tracks": 333
   },
@@ -50,18 +50,18 @@
     "bgMean": 0,
     "allMean": 0,
     "maxAll": 0,
-    "avgMs": 139.1,
+    "avgMs": 170.8,
     "fits": 1442,
     "tracks": 366
   },
   "waving": {
-    "fgMean": 0.073,
+    "fgMean": 0.096,
     "fgCov": 1,
     "bgBright": 0,
-    "bgMean": 0,
-    "allMean": 0.013,
-    "maxAll": 0.089,
-    "avgMs": 128.3,
+    "bgMean": 0.001,
+    "allMean": 0.017,
+    "maxAll": 0.117,
+    "avgMs": 163.9,
     "fits": 986,
     "tracks": 298
   },
@@ -72,7 +72,7 @@
     "bgMean": 0,
     "allMean": 0,
     "maxAll": 0,
-    "avgMs": 138.3,
+    "avgMs": 149.9,
     "fits": 1155,
     "tracks": 333
   },
@@ -83,7 +83,7 @@
     "bgMean": 0,
     "allMean": 0,
     "maxAll": 0,
-    "avgMs": 0.2,
+    "avgMs": 0.3,
     "fits": 0,
     "tracks": 0
   },
@@ -91,12 +91,12 @@
     "maxAll": 0
   },
   "forwardobj": {
-    "fgMean": 0.618,
+    "fgMean": 0.62,
     "bgBright": 0
   },
   "punch@30": {
     "peakFg": 1,
-    "maxBgBright": 0.002
+    "maxBgBright": 0.003
   },
   "punch@15": {
     "peakFg": 1,

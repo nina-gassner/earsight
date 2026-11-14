@@ -86,6 +86,10 @@ export interface MotionSettings {
   derotate: boolean;
   /** keep only evidence on a plausible collision path (constant bearing + growth); suppresses things we merely pass */
   pathGate: boolean;
+  /** path gate: lateral miss distance (m) up to which evidence is fully kept; fades out over the following 0.5 m */
+  pathHalfWidth: number;
+  /** ignore approach evidence while the camera turns faster than this many deg/s (0 = off): turning in place fakes expansion */
+  maxTurnDegPerSec: number;
   /** assumed closing speed in m/s used to turn expansion rate into distance */
   walkSpeed: number;
   /** assumed horizontal field of view of the camera in degrees (phones are typically 60-75) */
@@ -101,7 +105,9 @@ export const DEFAULT_MOTION_SETTINGS: MotionSettings = {
   nearThreshold: 0.15,
   egoComp: true,
   derotate: true,
-  pathGate: true,
+  pathGate: true, // ignore things we merely pass (tables, columns) but keep near misses: see pathHalfWidth
+  pathHalfWidth: 1.0, // kept fully up to 1.0 m lateral miss distance, fades out over the next 0.5 m
+  maxTurnDegPerSec: 45,
   walkSpeed: 1.4,
   hfovDeg: 70,
 };

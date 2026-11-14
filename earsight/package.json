@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "inspect-depth": "node scripts/inspect-depth.mjs",
+    "fetch-model": "node scripts/fetch-model.mjs",
     "phone": "vite build && vite preview --host --port 5173 --strictPort"
   },
   "dependencies": {

@@ -29,6 +29,7 @@ const el = {
   objects: $<HTMLInputElement>('chkObjects'), ego: $<HTMLInputElement>('chkEgo'), derot: $<HTMLInputElement>('chkDerot'), path: $<HTMLInputElement>('chkPath'), closeThr: $<HTMLInputElement>('rCloseThr'), gateBeep: $<HTMLInputElement>('chkGateBeep'),
   btnRunOnPhone: $<HTMLButtonElement>('btnRunOnPhone'), qrTitle: $('qrTitle'),
   btnLaptop: $<HTMLButtonElement>('btnCamLaptop'), btnPhone: $<HTMLButtonElement>('btnCamPhone'), qrPanel: $('qrPanel'), qrCanvas: $<HTMLCanvasElement>('qrCanvas'), qrText: $('qrText'), qrStatus: $('qrStatus'),
+  pathW: $<HTMLInputElement>('rPathW'), turn: $<HTMLInputElement>('rTurn'), speed: $<HTMLInputElement>('rSpeed'), hfov: $<HTMLInputElement>('rHfov'), resetAdv: $<HTMLButtonElement>('btnResetAdv'),
   panels: $('panels'), effects: $('effects'),
   cvLeft: $<HTMLCanvasElement>('cvLeft'), cvMid: $<HTMLCanvasElement>('cvMid'), cvRight: $<HTMLCanvasElement>('cvRight'), hatch: $<HTMLCanvasElement>('hatch'),
   dbgLeft: $<HTMLCanvasElement>('dbgLeft'), dbgRight: $<HTMLCanvasElement>('dbgRight'),
@@ -143,12 +144,38 @@ function drawUnavailable(text: string) {
   ctx.fillText(text, 320, 240);
 }
 
+// ---------------------------------------------------------------- advanced settings: remembered in this browser
+const ADV_KEY = 'earsight.advanced.v1';
+const ADV_IDS = ['rWin', 'rSens', 'rSm', 'rDsm', 'rNear', 'rPathW', 'rTurn', 'rSpeed', 'rHfov', 'chkObjects', 'chkPath', 'chkDerot', 'chkEgo', 'chkGate', 'chkUnknown', 'chkPoints', 'chkFits', 'selProc', 'selDepthSize', 'selCap'];
+const advField = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+function loadAdvanced() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ADV_KEY) ?? '{}') as Record<string, string | boolean>;
+    for (const id of ADV_IDS) {
+      const f = advField(id); if (!f || !(id in saved)) continue;
+      if (f instanceof HTMLInputElement && f.type === 'checkbox') f.checked = saved[id] === true; else f.value = String(saved[id]);
+    }
+  } catch { /* storage unavailable: defaults */ }
+}
+function saveAdvanced() {
+  try {
+    const out: Record<string, string | boolean> = {};
+    for (const id of ADV_IDS) { const f = advField(id); if (f) out[id] = f instanceof HTMLInputElement && f.type === 'checkbox' ? f.checked : f.value; }
+    localStorage.setItem(ADV_KEY, JSON.stringify(out));
+  } catch { /* ignore */ }
+}
+loadAdvanced();
+document.getElementById('adv')?.addEventListener('input', saveAdvanced);
+document.getElementById('adv')?.addEventListener('change', saveAdvanced);
+el.resetAdv.addEventListener('click', () => { try { localStorage.removeItem(ADV_KEY); } catch { /* ignore */ } location.reload(); });
+
 // ---------------------------------------------------------------- settings
 function motionSettings(): MotionSettings {
   return {
     ...DEFAULT_MOTION_SETTINGS,
     procWidth: Number(el.proc.value), windowMs: Number(el.win.value), sensitivity: Number(el.sens.value),
     smoothingMs: Number(el.sm.value), useDepthGate: el.gate.checked, nearThreshold: Number(el.near.value), egoComp: el.ego.checked, derotate: el.derot.checked, pathGate: el.path.checked,
+    pathHalfWidth: Number(el.pathW.value), maxTurnDegPerSec: Number(el.turn.value), walkSpeed: Number(el.speed.value), hfovDeg: Number(el.hfov.value),
   };
 }
 function pushMotionSettings() { motion?.configure(motionSettings()); }
@@ -160,6 +187,10 @@ function bindRange(input: HTMLInputElement, out: string, fmt: (v: number) => str
 }
 bindRange(el.win, 'oWin', (v) => String(v), pushMotionSettings);
 bindRange(el.sens, 'oSens', (v) => v.toFixed(1), pushMotionSettings);
+bindRange(el.pathW, 'oPathW', (v) => v.toFixed(1), pushMotionSettings);
+bindRange(el.turn, 'oTurn', (v) => String(v), pushMotionSettings);
+bindRange(el.speed, 'oSpeed', (v) => v.toFixed(1), pushMotionSettings);
+bindRange(el.hfov, 'oHfov', (v) => String(v), pushMotionSettings);
 bindRange(el.sm, 'oSm', (v) => String(v), pushMotionSettings);
 bindRange(el.dsm, 'oDsm', (v) => String(v), () => { if (depth) depth.normalizer.settings.boundsSmoothingMs = Number(el.dsm.value); });
 el.gate.addEventListener('change', pushMotionSettings);
@@ -495,6 +526,11 @@ if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
   el.mirror.checked = false; el.panels.classList.remove('mirror');
   el.proc.value = '240'; el.depthSize.value = '266';
   document.getElementById('camToggle')!.hidden = true; el.btnRunOnPhone.hidden = true;
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    // iOS Safari kills the page ("a problem repeatedly occurred") when it uses too much memory: go as light as possible
+    el.proc.value = '160'; el.depthSize.value = '196'; el.cap.value = '320x240';
+  }
+  if (new URLSearchParams(location.search).get('depth') === '0') el.depthOn.checked = false; // test aid: open the page with ?depth=0
 }
 populateSources();
 setAspect(640, 480);

@@ -33,6 +33,14 @@ function applySize() {
   if (processor?.image_processor) processor.image_processor.size = { width: inputSize, height: inputSize };
 }
 
+async function localModelAvailable(): Promise<boolean> {
+  try {
+    const r = await fetch(`${self.location.origin}/models/${DEPTH_MODEL_ID}/onnx/model_fp16.onnx`, { method: 'HEAD' });
+    const ct = r.headers.get('content-type') ?? '';
+    return r.ok && !ct.includes('text/html'); // a dev-server SPA fallback answers 200 with html for missing files
+  } catch { return false; }
+}
+
 async function init(backend: 'webgpu' | 'wasm', size: number) {
   inputSize = size;
   if (backend === 'webgpu') {
@@ -48,6 +56,13 @@ async function init(backend: 'webgpu' | 'wasm', size: number) {
       post({ type: 'progress', file: p.file ?? '', loaded: p.loaded ?? 0, total: p.total ?? 0, status: p.status });
     }
   };
+  // prefer a copy of the model served by this server (npm run fetch-model): far faster and more reliable on a phone than
+  // huggingface.co; falls back to the normal download if it is not there
+  if (backend === 'webgpu' && await localModelAvailable()) {
+    env.allowLocalModels = true;
+    env.localModelPath = self.location.origin + '/models/';
+    post({ type: 'status', text: `Loading ${DEPTH_MODEL_ID} from this server (${dtype}, ${backend})…` });
+  }
   processor = await AutoProcessor.from_pretrained(DEPTH_MODEL_ID, { progress_callback });
   model = await AutoModel.from_pretrained(DEPTH_MODEL_ID, { device: backend, dtype, progress_callback });
   applySize();

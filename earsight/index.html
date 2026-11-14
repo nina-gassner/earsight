@@ -61,7 +61,7 @@
     <div id="message" role="status" hidden></div>
     <div id="progress" hidden><div class="bar"><div id="progressFill"></div></div><span id="progressText"></span></div>
     <details id="adv">
-      <summary>Settings &amp; debugging</summary>
+      <summary>Advanced settings</summary>
       <div class="grid">
         <label>Capture resolution
           <select id="selCap"><option value="320x240">320×240</option><option value="640x480" selected>640×480</option><option value="1280x720">1280×720</option></select>
@@ -87,6 +87,18 @@
         <label>Ignore far regions below closeness <output id="oNear">0.15</output>
           <input type="range" id="rNear" min="0" max="0.6" step="0.05" value="0.15" />
         </label>
+        <label>Collision-path width <output id="oPathW">1.0</output> m (larger = also catches near misses, but more beeps for things you walk past)
+          <input type="range" id="rPathW" min="0.3" max="4" step="0.1" value="1.0" />
+        </label>
+        <label>Ignore while turning faster than <output id="oTurn">45</output> °/s (0 = off)
+          <input type="range" id="rTurn" min="0" max="200" step="5" value="45" />
+        </label>
+        <label>Assumed closing speed <output id="oSpeed">1.4</output> m/s
+          <input type="range" id="rSpeed" min="0.5" max="10" step="0.1" value="1.4" />
+        </label>
+        <label>Camera field of view <output id="oHfov">70</output>°
+          <input type="range" id="rHfov" min="40" max="110" step="1" value="70" />
+        </label>
         <label class="chk"><input type="checkbox" id="chkObjects" checked /> Only separable objects (reject gradients / huge / soft regions)</label>
         <label class="chk"><input type="checkbox" id="chkPath" checked /> Only things on a collision path (ignore what I merely pass)</label>
         <label class="chk"><input type="checkbox" id="chkDerot" checked /> Compensate camera rotation (pan / tilt / roll)</label>
@@ -96,6 +108,7 @@
         <label class="chk"><input type="checkbox" id="chkPoints" /> Tracked points</label>
         <label class="chk"><input type="checkbox" id="chkFits" /> Local fits (rate / confidence)</label>
       </div>
+      <button type="button" id="btnResetAdv">Reset advanced settings to defaults</button>
       <div id="effects" class="hint"></div>
     </details>
   </section>
