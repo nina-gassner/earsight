@@ -258,7 +258,7 @@ function onSourceFrame(info: FrameInfo) {
 
   // --- depth: at most one inference in flight; frame is captured only when the worker is free
   if (depth && depth.ready && !depth.busy) {
-    const dw = Math.min(w, 640), dh = Math.round((dw * h) / w);
+    const dw = Math.min(w, Math.max(196, Number(el.depthSize.value)) * 1.5 | 0), dh = Math.round((dw * h) / w);
     if (depthCanvas.width !== dw || depthCanvas.height !== dh) { depthCanvas.width = dw; depthCanvas.height = dh; }
     depthCtx.drawImage(img, 0, 0, dw, dh);
     const data = depthCtx.getImageData(0, 0, dw, dh).data;
@@ -533,7 +533,7 @@ window.addEventListener('unhandledrejection', (e) => msg('Error: ' + ((e.reason 
 if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
   // running on the phone itself: rear camera is not a mirror, and phones need lighter defaults
   el.mirror.checked = false; el.panels.classList.remove('mirror');
-  el.proc.value = '240'; el.depthSize.value = '266';
+  el.proc.value = '160'; el.depthSize.value = '196'; el.cap.value = '320x240'; // all phones: the tab is killed and reloaded when memory runs out, so start light
   document.getElementById('camToggle')!.hidden = true; el.btnRunOnPhone.hidden = true;
   if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
     // iOS Safari kills the page ("a problem repeatedly occurred") when it uses too much memory: go as light as possible
