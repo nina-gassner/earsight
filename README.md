@@ -1,91 +1,86 @@
-# Earsight
+# Earsight 👂
 
-**Hear what's coming.** Earsight turns a camera feed into sound, so that something moving toward you can be *heard* before it reaches you. It runs entirely in the browser (phone or laptop), with no server, no API keys and no account.
+Hear what's coming!
 
-🏆 Winner of the **Meta challenge** at Junction.
-🎬 Pitch: https://youtu.be/EuUEM5ndjEg
+Earsight takes a camera feed and turns it into sound, so you can *hear* something moving toward you before it gets to you. It runs completely in the browser, on your phone or laptop. No server, no API keys, no account.
 
-## What it does
+We won the **Meta challenge at Junction** with this :D 🏆
+Here's our pitch: https://youtu.be/EuUEM5ndjEg
 
-A camera sees the scene. Earsight works out **where something is approaching** and **how close it is**, then plays it as beeps in headphones or glasses:
+## How it sounds
 
-| Sound | Means |
-|---|---|
-| Beeps get **faster** (2 → 36 per second) | the object is getting closer |
-| Beeps get **louder** | the object is getting closer |
-| **Left / right ear** | the object is to your left / right |
-| **Pitch** | the object is high / low in the view |
+Think of a car's parking sensor, but with direction and height too:
 
-Think of a car's parking sensor, extended with direction and height.
+- the closer something is, the **faster** the beeps (2 up to 36 per second)
+- the closer something is, the **louder** they get
+- something on your left beeps in your left ear, same for the right
+- something high up gets a high tone, something low gets a low one
 
-Besides the sound, the second device (for example glasses) can show two accessibility views:
-- **Peripheral vision**: the camera picture on the whole display, for people with tunnel vision.
-- **Light perception**: depth as brightness, where closer means brighter, for people with very low vision.
+There are also two views for the glasses or the second screen. **Peripheral vision** shows the camera picture across the whole display (for tunnel vision), and **light perception** shows depth as brightness, so closer means brighter (for very low vision).
 
-## How it works
+## How does it work?
 
-Two separate parts answer two separate questions:
+Short version: it's not a neural network. There are two parts:
 
-| Question | Part | Method |
-|---|---|---|
-| *Is something coming toward me, and where?* | **Approach detector** (`src/motion/`) | Classical computer vision, **not a trained model** |
-| *How close is it?* | **Depth model** (`src/depth/`) | Pre-trained Depth Anything V2 Small (relative depth, not metres) |
+**1. Is something coming at me? (`src/motion/`)**
+Things that move toward you get bigger in the picture, so we just measure that.
+We pick a bunch of corner-ish points in the image (Shi-Tomasi), follow them from frame to frame (Lucas-Kanade optical flow) and look at whether little patches of points are spreading apart. Spreading apart means the thing is getting closer. RANSAC throws out points that got tracked wrong, and we filter over time so a waving hand doesn't set it off. We also cancel out your own head turning (`derotate.ts`), and a path gate (`pathGate.ts`) only cares about stuff that's actually on a collision course and not something passing by on the side.
+No training data, no labels. A scooter, a door and a dog all work the same way, and it's fast enough for a phone.
 
-### Approach detection: things that come toward you get bigger
+**2. How close is it? (`src/depth/`)**
+Here we do use a neural net: Depth Anything V2 Small, pre-trained, running in the browser. It only gives *relative* depth (closer or farther, not meters), and we use it to decide how loud and how fast the beeps are.
 
-1. Pick distinctive corner points across the image (Shi-Tomasi, `goodFeaturesToTrack`), spread over a grid so the whole view is covered.
-2. Follow them from frame to frame (pyramidal Lucas-Kanade optical flow), with a forward/backward check to drop unreliable tracks.
-3. For small neighbourhoods, fit a local transform with RANSAC (robust against wrongly tracked points) and read out how fast the patch is **expanding**: `rate = ln(scale) / Δt`. For a flat surface this is 1/time-to-contact.
-4. Reject doubtful fits, filter evidence over time so that waving hands cancel out, and compensate for the wearer's own head rotation (`derotate.ts`).
-5. A path gate (`pathGate.ts`) keeps only things on a collision course: constant bearing plus growth. Things passing by at the side stay quiet.
-6. Evidence is painted into an approach map. A sound gate (`gate.ts`) debounces it so the beeps don't flicker.
+The beeps follow whichever is bigger, how close something is or how strongly it's approaching.
 
-No training data is needed, it needs no object labels (a scooter, a door and a dog all work), it runs in real time on a phone, and every decision can be traced back to the points that grew.
+## Two devices
 
-### Two devices
+When you open the app you pick a role:
 
-On start you choose a role:
-- **Both**: one device provides camera and sound (a phone with headphones).
-- **Supplier** (phone) and **Viewer** (glasses): the phone sees and analyses; the glasses show the picture and play the sound. They connect directly over WebRTC with a 6-character pairing code, so images and sound data never pass through our server.
+- **Both**: this device does everything (e.g. your phone + headphones)
+- **Supplier**: the phone, it has the camera and does all the analysis
+- **Viewer**: the glasses (or any browser), it shows the picture and plays the sound
+
+The viewer shows a 6-character code, you type it into the phone, done. They connect directly over WebRTC, so the video never goes through any server of ours.
 
 ## Run it
 
 ```bash
 cd earsight
 npm install
-npm run dev        # https://localhost:5173 (HTTPS, so phones can use the camera)
-npm test           # unit + pipeline + evaluation tests
-npm run build      # type-check + production build
+npm run dev     # https://localhost:5173, HTTPS because phones need it for the camera
+npm test
+npm run build
 ```
 
-Open the page, choose a role, allow the camera and tap Start. The depth model (tens of MB) is downloaded once on first use. `npm run phone` serves the production build on the local network for testing on a real phone. The site is also deployed to GitHub Pages from `main` (`.github/workflows`).
+Open it, pick a role, allow the camera, hit Start. The depth model (a few dozen MB) gets downloaded the first time. `npm run phone` serves the production build on your wifi so you can try it on a real phone. Every push to `main` also deploys to GitHub Pages.
 
-## Repository layout
+## What's in here
 
 ```
-earsight/            the app (TypeScript + Vite)
-  src/motion/        approach detection (OpenCV.js in a worker)
-  src/depth/         depth model (transformers.js, WebGPU/WASM, in a worker)
-  src/audio/         sonifier (beeps) and sound gate
-  src/ui/            roles, vision modes, button navigation for glasses
-  src/link.ts        WebRTC pairing between supplier and viewer
-  src/eval/          renders scripted walks through a 3-D model for evaluation
-  tests/             vitest
-  README.md          detailed engineering log (design decisions, tuning, all limits)
-earsight-circles/    earlier prototype
+earsight/              the app (TypeScript + Vite)
+  src/motion/          approach detection (OpenCV.js in a worker)
+  src/depth/           depth model (transformers.js, in a worker)
+  src/audio/           beeps + the gate that stops them flickering
+  src/ui/              roles, vision modes, button navigation for the glasses
+  src/link.ts          pairing between phone and glasses
+  src/eval/            walks through a 3D model, used to tune things
+  tests/               vitest
+  README.md            our long dev log with every design decision and all the limits
+earsight-circles/      earlier prototype
 ```
 
-## Honest limitations
+## Things it can't do (yet)
 
-- **This is not a safety system.** Don't rely on it as the only way to avoid obstacles.
-- It needs **texture** to track. A plain wall or the sky gives no trackable points, so the result is "unknown", not "safe". In our simulated walks, recall on a plain wall was low.
-- Distance is **relative** (closer or farther), not in metres.
-- Heavy camera shake, darkness, motion blur and sudden exposure changes can produce false or missing detections.
-- Evaluated mainly on synthetic scenes and simulated walks through one 3-D interior (Sponza). Real-world testing on phones and glasses is still limited; the details are in [`earsight/README.md`](earsight/README.md).
+Please don't use this as your only way of not walking into stuff.
 
-## Credits and licences
+- It needs texture to track. A plain white wall or the sky gives it nothing to follow, and then it says "unknown", not "safe". In our simulated walks it mostly missed plain walls.
+- Distance is relative, not in meters.
+- Heavy shaking, darkness, motion blur and sudden exposure changes can fool it.
+- We mostly tested on synthetic scenes and simulated walks through one 3D building (Sponza). Real-world testing on phones and glasses is still thin. The details are in [`earsight/README.md`](earsight/README.md).
 
-- Depth: [Depth Anything V2 Small](https://huggingface.co/onnx-community/depth-anything-v2-small) (Apache-2.0) via `@huggingface/transformers` (Apache-2.0) and ONNX Runtime Web (MIT)
-- Tracking: OpenCV 4.12 via `@techstark/opencv-js` (Apache-2.0)
-- Pairing: PeerJS (WebRTC)
-- The Sponza test model (Khronos glTF Sample Assets, Cryengine Limited License) is used for local evaluation only and is not redistributed.
+## Credits
+
+- Depth: [Depth Anything V2 Small](https://huggingface.co/onnx-community/depth-anything-v2-small) (Apache-2.0), run through `@huggingface/transformers` and ONNX Runtime Web
+- Tracking: OpenCV 4.12 via `@techstark/opencv-js`
+- Phone-to-glasses link: PeerJS / WebRTC
+- The Sponza test model (Khronos glTF samples, Cryengine Limited License) was only used locally for evaluation and is not included
